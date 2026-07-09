@@ -9,7 +9,7 @@
 
   // Supabase Configuration
   // NOTE: Paste your Supabase project credentials here.
-  const SUPABASE_URL = "https://hqbyydyrxfzpcfvohw.supabase.co";
+  const SUPABASE_URL = "https://hqbyydyrxfhzpecfvehw.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_kXE_vkmlr-C0X5tytY26Mg_C3ZNRUHG";
   let client = null;
   if (typeof supabase !== 'undefined' && SUPABASE_URL !== "YOUR_SUPABASE_URL" && SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY") {
