@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <!-- SEO Meta Tags -->
+  <title>Baldaniya Gautam | Cybersecurity Professional & SOC Analyst Portfolio</title>
+  <meta name="description" content="Portfolio of Baldaniya Gautam Rameshbhai, a Cybersecurity Analyst and SOC professional specialized in VAPT, Digital Forensics, and Threat Intelligence. Check out the interactive SOC console, security lab, and case studies.">
+  <meta name="keywords" content="Cybersecurity Analyst, SOC Analyst, VAPT, Penetration Testing, Digital Forensics, Malware Analysis, Baldaniya Gautam, Portfolio">
+  <meta name="author" content="Baldaniya Gautam Rameshbhai">
+  <meta name="robots" content="index, follow">
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="src/css/style.css">
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="dark-theme">
+  <!-- Biometric Scanner / Security Bootstrap Loader -->
+  <div id="loading-screen" class="loading-screen">
+    <div class="loader-container">
+      <div class="scanner-circle">
+        <div class="scan-line"></div>
+        <i data-lucide="shield-alert" class="scan-icon animate-pulse"></i>
+      </div>
+      <h2 class="loader-title">SECURE ACCESS GATEWAY</h2>
+      <p class="loader-subtitle">ESTABLISHING ENCRYPTED SESSION...</p>
+      <div class="loader-console" id="loader-console">
+        <div class="console-line">> Initializing security modules... [OK]</div>
+        <div class="console-line">> Resolving credentials for BALDANIYA GAUTAM... [OK]</div>
+        <div class="console-line">> Loading SOC Console engine... [OK]</div>
+        <div class="console-line">> Syncing threat intelligence feeds... [OK]</div>
+        <div class="console-line">> System Ready. Authenticating guest session...</div>
+      </div>
+      <button id="auth-btn" class="auth-btn" style="display: none;">
+        <span>AUTHENTICATE GUEST</span>
+        <i data-lucide="fingerprint"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Global Custom Cursor -->
+  <div class="custom-cursor" id="custom-cursor"></div>
+  <div class="custom-cursor-glow" id="custom-cursor-glow"></div>
+
+  <!-- Cyber Grid Background -->
+  <div class="grid-background"></div>
+  <div class="grid-scanline"></div>
+
+  <!-- Header Section -->
+  <header class="system-header">
+    <div class="header-logo-wrap">
+      <button class="icon-btn" id="sidebar-toggle-btn" title="Toggle Navigation Sidebar">
+        <i data-lucide="menu"></i>
+      </button>
+      <div class="header-logo" id="home-logo-btn">
+        <div class="logo-icon-wrap">
+          <i data-lucide="shield" class="logo-icon text-cyber-green"></i>
+          <div class="logo-pulse"></div>
+        </div>
+        <div class="logo-text">
+          <span class="logo-title">GAUTAM_SEC</span>
+          <span class="logo-ver">v1.0.0</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="header-status">
+      <div class="status-indicator">
+        <span class="status-dot online"></span>
+        <span class="status-label text-cyber-green">CONSOLE ONLINE</span>
+      </div>
+      <div class="header-stats hide-mobile">
+        <span class="stat-item"><span class="label">CPU:</span> <span class="val" id="cpu-stat">12%</span></span>
+        <span class="stat-item"><span class="label">RAM:</span> <span class="val" id="ram-stat">4.2GB</span></span>
+        <span class="stat-item"><span class="label">LATENCY:</span> <span class="val text-cyber-green" id="latency-stat">18ms</span></span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- Quick Cmd Button -->
+      <button class="icon-btn" id="header-cmd-btn" title="Command Palette (Ctrl+K)">
+        <i data-lucide="terminal"></i>
+        <span class="shortcut-badge hide-mobile">Ctrl+K</span>
+      </button>
+      <!-- Sound Toggle -->
+      <button class="icon-btn" id="sound-btn" title="Toggle System Sound">
+        <i data-lucide="volume-2" id="sound-icon"></i>
+      </button>
+      <!-- Quick Dashboard Launch -->
+      <button class="header-action-btn" id="launch-soc-btn">
+        <i data-lucide="layout-dashboard"></i>
+        <span>SOC DASHBOARD</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Sidebar / Console Mode Left Panel (Only visible in Dashboard / Lab View) -->
+  <aside class="console-sidebar hidden" id="console-sidebar">
+    <div class="sidebar-user">
+      <div class="avatar-wrap">
+        <i data-lucide="user-check" class="avatar-icon text-cyber-green"></i>
+      </div>
+      <div class="user-info">
+        <div class="user-name">Gautam Baldaniya</div>
+        <div class="user-role">SOC / VAPT / Forensics</div>
+      </div>
+    </div>
+    
+    <nav class="sidebar-nav">
+      <button class="nav-btn active" data-view="dashboard" id="btn-side-dashboard">
+        <i data-lucide="activity"></i><span>Threat Console</span>
+      </button>
+      <button class="nav-btn" data-view="lab" id="btn-side-lab">
+        <i data-lucide="cpu"></i><span>Lab & Forensics</span>
+      </button>
+      <button class="nav-btn" data-view="experience" id="btn-side-experience">
+        <i data-lucide="git-branch"></i><span>Internship Workflows</span>
+      </button>
+      <button class="nav-btn" data-view="projects" id="btn-side-projects">
+        <i data-lucide="folder-git-2"></i><span>Project Files</span>
+      </button>
+      <button class="nav-btn" data-view="credentials" id="btn-side-credentials">
+        <i data-lucide="file-badge"></i><span>Credentials & CTFs</span>
+      </button>
+      <button class="nav-btn" data-view="resume" id="btn-side-resume">
+        <i data-lucide="file-text"></i><span>Resume PDF</span>
+      </button>
+      <button class="nav-btn" data-view="recruiter" id="btn-side-recruiter">
+        <i data-lucide="briefcase"></i><span>Recruiter Hub</span>
+      </button>
+      <button class="nav-btn" data-view="contact" id="btn-side-contact">
+        <i data-lucide="mail"></i><span>Secure Channel</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="threat-intel-pulse">
+        <div class="intel-header">
+          <span class="pulse-dot red"></span>
+          <span class="intel-title">MITRE Threat Intel</span>
+        </div>
+        <div class="intel-feed" id="sidebar-intel-feed">
+          Detecting system telemetry...
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Viewport Area -->
+  <main id="viewport" class="viewport-fullscreen">
+    
+    <!-- SECTION 1: HERO / LANDING PAGE -->
+    <section id="view-hero" class="viewport-section active">
+      <div class="hero-canvas-container">
+        <!-- Interactive Globe Canvas -->
+        <canvas id="globe-canvas"></canvas>
+      </div>
+      <div class="hero-content">
+        <div class="banner-pill" id="hackathon-pill">
+          <i data-lucide="award" class="text-cyber-purple"></i>
+          <span>2nd Place — Vadodara Hackathon 5.0 (Selected for Tech Expo 2025)</span>
+        </div>
+        
+        <h1 class="hero-name">
+          BALDANIYA GAUTAM <span class="surname">RAMESHBHAI</span>
+        </h1>
+        
+        <div class="hero-typing-wrap">
+          <span class="terminal-prompt">$</span>
+          <span class="typing-text" id="typing-text"></span>
+          <span class="cursor-blink">|</span>
+        </div>
+        
+        <p class="hero-intro">
+          MCA Cyber Security & Forensics graduate specializing in offensive VAPT operations, security event monitoring (SOC), and digital forensics. Immediately available to join security teams and build audit-log validation engines, trace malware infections, and secure enterprise networks.
+        </p>
+
+        <!-- Stats Grid -->
+        <div class="hero-stats-grid">
+          <div class="hero-stat-card">
+            <div class="stat-num text-cyber-purple">2nd / 428</div>
+            <div class="stat-lbl">Hackathon Rank</div>
+          </div>
+          <div class="hero-stat-card">
+            <div class="stat-num text-cyber-green">100%</div>
+            <div class="stat-lbl">Log Tamper Detection</div>
+          </div>
+          <div class="hero-stat-card">
+            <div class="stat-num text-cyber-blue">Active</div>
+            <div class="stat-lbl">Intern Experience</div>
+          </div>
+          <div class="hero-stat-card">
+            <div class="stat-num">Immediate</div>
+            <div class="stat-lbl">Job Availability</div>
+          </div>
+        </div>
+
+        <div class="hero-actions-row">
+          <button class="btn btn-primary" id="hero-launch-btn">
+            <i data-lucide="shield-alert"></i>
+            <span>LAUNCH SECURE CONSOLE</span>
+          </button>
+          <a href="#contact" class="btn btn-secondary" id="hero-recruiter-btn">
+            <i data-lucide="briefcase"></i>
+            <span>RECRUITER HUB</span>
+          </a>
+          <button class="btn btn-ghost" id="hero-resume-btn">
+            <i data-lucide="download"></i>
+            <span>DOWNLOAD ATS RESUME</span>
+          </button>
+        </div>
+
+        <div class="hero-socials">
+          <a href="https://linkedin.com/in/gautam6213" target="_blank" class="social-link" title="LinkedIn Profile">
+            <i data-lucide="linkedin"></i>
+            <span>LinkedIn</span>
+          </a>
+          <a href="https://github.com/BaldaniyaGautam6213" target="_blank" class="social-link" title="GitHub Repositories">
+            <i data-lucide="github"></i>
+            <span>GitHub</span>
+          </a>
+          <a href="mailto:gautam6213@gmail.com" class="social-link" title="Email Direct">
+            <i data-lucide="mail"></i>
+            <span>Email</span>
+          </a>
+          <a href="tel:+918780789081" class="social-link" title="Phone Call">
+            <i data-lucide="phone"></i>
+            <span>+91 8780789081</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Scroll Down Indicator -->
+      <div class="scroll-indicator" id="hero-scroll-btn">
+        <span class="scroll-text">LAUNCH SOC COMMANDER</span>
+        <i data-lucide="chevrons-down" class="scroll-arrow animate-bounce"></i>
+      </div>
+    </section>
+
+    <!-- SECTION 2: SOC DASHBOARD -->
+    <section id="view-dashboard" class="viewport-section hidden">
+      <div class="dashboard-grid">
+        <!-- Top Stats Row -->
+        <div class="dashboard-panel panel-telemetry card-col-3">
+          <div class="panel-header">
+            <div class="panel-title"><i data-lucide="activity"></i> THREAT TELEMETRY MAP</div>
+            <div class="panel-options"><span class="pulse-dot green"></span> Live Feed</div>
+          </div>
+          <div class="panel-body map-visualizer-container">
+            <!-- Simulated Attack Map Overlay -->
+            <div class="attack-map-canvas-container">
+              <canvas id="attack-map-canvas"></canvas>
+            </div>
+            <div class="map-stats-overlay">
+              <div class="map-stat-box">
+                <div class="num text-cyber-red" id="alerts-count">0</div>
+                <div class="lbl">Intrusions Logged</div>
+              </div>
+              <div class="map-stat-box">
+                <div class="num text-cyber-green">100%</div>
+                <div class="lbl">Tamper Guard</div>
+              </div>
+              <div class="map-stat-box">
+                <div class="num text-cyber-blue">Active</div>
+                <div class="lbl">Forensic Mode</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- System Logs Console -->
+        <div class="dashboard-panel panel-logs card-col-1">
+          <div class="panel-header">
+            <div class="panel-title"><i data-lucide="database"></i> SECURITY LOGS INGEST</div>
+            <div class="panel-options"><i data-lucide="pause-circle" id="pause-logs-btn" class="cursor-pointer"></i></div>
+          </div>
+          <div class="panel-body log-container" id="soc-logs-box">
+            <!-- Logs dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Skills Categories Matrix (Filters) -->
+        <div class="dashboard-panel panel-skills card-col-2">
+          <div class="panel-header">
+            <div class="panel-title"><i data-lucide="terminal"></i> CYBER SECURITY SKILLS MATRIX</div>
+            <div class="panel-controls">
+              <input type="text" id="skill-search" placeholder="Search skills / tools (e.g. Splunk)..." class="panel-search-input">
+            </div>
+          </div>
+          <div class="skills-filter-buttons">
+            <button class="filter-chip active" data-skill-cat="all">All</button>
+            <button class="filter-chip" data-skill-cat="vapt">Offensive / VAPT</button>
+            <button class="filter-chip" data-skill-cat="soc">Defensive / SOC</button>
+            <button class="filter-chip" data-skill-cat="forensics">Digital Forensics</button>
+            <button class="filter-chip" data-skill-cat="networking">Networking & OS</button>
+            <button class="filter-chip" data-skill-cat="programming">Coding & Scripting</button>
+          </div>
+          <div class="panel-body skills-dashboard-body" id="skills-grid-container">
+            <!-- Dynamic Skills List -->
+          </div>
+        </div>
+
+        <!-- Radar Chart Visualizer -->
+        <div class="dashboard-panel panel-radar card-col-2">
+          <div class="panel-header">
+            <div class="panel-title"><i data-lucide="target"></i> COMPETENCY RADAR MATRIX</div>
+          </div>
+          <div class="panel-body radar-chart-container">
+            <canvas id="radar-canvas"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 3: INTERACTIVE EXPERIENCE TIMELINE -->
+    <section id="view-experience" class="viewport-section hidden">
+      <div class="section-container">
+        <h2 class="view-title"><i data-lucide="git-branch"></i> INTERNSHIP CASE STUDIES</h2>
+        <p class="view-subtitle">Detailed security engagements during my internship as a <strong>Cybersecurity Analyst Intern</strong> at <strong>Dharma Infotech</strong></p>
+
+        <div class="experience-layout">
+          <!-- Timeline Side selector -->
+          <div class="exp-navigation-sidebar" id="exp-nav-sidebar">
+            <!-- Dynamically populated timeline milestones -->
+          </div>
+
+          <!-- Main Content Area -->
+          <div class="exp-details-container" id="exp-details-view">
+            <!-- Detailed Intern Engagement contents -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 4: SECURITY LAB & FORENSICS -->
+    <section id="view-lab" class="viewport-section hidden">
+      <div class="section-container">
+        <div class="lab-tabs-row">
+          <button class="lab-tab-btn active" data-lab-tab="topology">
+            <i data-lucide="network"></i><span>INTERACTIVE LAB TOPOLOGY</span>
+          </button>
+          <button class="lab-tab-btn" data-lab-tab="forensics">
+            <i data-lucide="search-code"></i><span>DIGITAL FORENSICS WORKBENCH</span>
+          </button>
+        </div>
+
+        <!-- SUBTAB 1: Network Topology -->
+        <div class="lab-subview" id="lab-tab-topology">
+          <div class="topology-wrapper">
+            <div class="topology-canvas-side">
+              <div class="topology-container-svg" id="topology-svg-container">
+                <!-- SVG Network Topology Canvas -->
+              </div>
+              <div class="topology-instruction-banner">
+                <i data-lucide="info"></i>
+                <span>Click on network components to analyze secure zones, traffic flow, and vulnerabilities.</span>
+              </div>
+            </div>
+            <div class="topology-details-sidebar" id="topology-node-sidebar">
+              <div class="sidebar-no-selection">
+                <i data-lucide="mouse-pointer-click" class="pulse-icon"></i>
+                <h3>Select a Node</h3>
+                <p>Click on any network element in the architecture diagram to inspect configuration details, security policies, and incident telemetry.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUBTAB 2: Digital Forensics Workbench -->
+        <div class="lab-subview hidden" id="lab-tab-forensics">
+          <div class="forensics-wrapper">
+            <div class="forensics-sidebar-menu" id="forensics-case-menu">
+              <!-- Menu for forensic assets -->
+            </div>
+            <div class="forensics-main-panel" id="forensics-workspace-panel">
+              <!-- Workspace containing Volatility console output, Hex viewers, registry logs, or chain of custody details -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 5: PROJECTS & CASE STUDIES -->
+    <section id="view-projects" class="viewport-section hidden">
+      <div class="section-container">
+        <h2 class="view-title"><i data-lucide="folder-git-2"></i> SECURITY CASE STUDIES</h2>
+        <p class="view-subtitle">Detailed assessment reports on custom developed systems, threat detection modules, and cryptography applications.</p>
+        
+        <div class="projects-grid" id="projects-list-container">
+          <!-- Dynamically populated project cards -->
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 6: CREDENTIALS, CTFs, & BLOG -->
+    <section id="view-credentials" class="viewport-section hidden">
+      <div class="section-container">
+        <div class="lab-tabs-row">
+          <button class="lab-tab-btn active" data-cred-tab="certs">
+            <i data-lucide="award"></i><span>ACADEMIC & PROFESSIONAL CREDENTIALS</span>
+          </button>
+          <button class="lab-tab-btn" data-cred-tab="writeups">
+            <i data-lucide="terminal"></i><span>CTF WRITEUPS & BLOGS</span>
+          </button>
+        </div>
+
+        <!-- Subview 1: Certifications -->
+        <div class="cred-subview" id="cred-tab-certs">
+          <div class="certs-controls">
+            <input type="text" id="cert-search" placeholder="Search degrees / certifications..." class="panel-search-input">
+            <div class="filter-chips-row">
+              <button class="filter-chip active" data-cert-cat="all">All</button>
+              <button class="filter-chip" data-cert-cat="academic">Academic</button>
+              <button class="filter-chip" data-cert-cat="tech">Cyber Security</button>
+            </div>
+          </div>
+          <div class="certs-grid" id="certs-grid-container">
+            <!-- Dynamically populated certificates -->
+          </div>
+        </div>
+
+        <!-- Subview 2: Blogs and CTF Writeups -->
+        <div class="cred-subview hidden" id="cred-tab-writeups">
+          <div class="writeups-layout">
+            <div class="writeups-sidebar">
+              <input type="text" id="blog-search" placeholder="Search writeups / topics..." class="panel-search-input">
+              <div class="filter-chips-row">
+                <button class="filter-chip active" data-blog-cat="all">All Files</button>
+                <button class="filter-chip" data-blog-cat="writeup">CTF Writeups</button>
+                <button class="filter-chip" data-blog-cat="owasp">OWASP Security</button>
+                <button class="filter-chip" data-blog-cat="blue">Incident Ops</button>
+              </div>
+              <div class="writeup-file-tree" id="writeup-list-tree">
+                <!-- Dynamically loaded list of logs/articles -->
+              </div>
+            </div>
+            <div class="writeup-content-pane" id="writeup-reader-view">
+              <div class="no-article-selected">
+                <i data-lucide="file-text"></i>
+                <h3>Select a Secure Report</h3>
+                <p>Click on any CTF writeup or cybersecurity log file in the sidebar to decrypt and read the report details.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 7: RECRUITER HUB -->
+    <section id="view-recruiter" class="viewport-section hidden">
+      <div class="section-container">
+        <h2 class="view-title"><i data-lucide="briefcase"></i> RECRUITER GATEWAY</h2>
+        <p class="view-subtitle">Unified dashboard tailored for technical interviewers, hiring managers, and cybersecurity recruiters.</p>
+
+        <div class="recruiter-grid">
+          <!-- Recruiter Highlights Card -->
+          <div class="dashboard-panel panel-recruiter-summary card-col-2">
+            <div class="panel-header">
+              <div class="panel-title"><i data-lucide="user-check"></i> EXECUTIVE DOSSIER</div>
+            </div>
+            <div class="panel-body recruiter-summary-body">
+              <div class="dossier-row">
+                <span class="lbl">NAME:</span>
+                <span class="val font-semibold">Baldaniya Gautam Rameshbhai</span>
+              </div>
+              <div class="dossier-row">
+                <span class="lbl">EDUCATION:</span>
+                <span class="val">MCA — Cyber Security & Forensics (Parul University, 2024-2026)</span>
+              </div>
+              <div class="dossier-row">
+                <span class="lbl">ACADEMIC RANK:</span>
+                <span class="val text-cyber-purple">2nd Place Vadodara Hackathon 5.0 (428 Teams)</span>
+              </div>
+              <div class="dossier-row">
+                <span class="lbl">INTERNSHIP ROLE:</span>
+                <span class="val">Cybersecurity Analyst Intern (Dharma Infotech)</span>
+              </div>
+              <div class="dossier-row">
+                <span class="lbl">PRIMARY FOCUS:</span>
+                <span class="val text-cyber-green">VAPT, SOC Incident Triage, Log Tamper-proofing, Memory Forensics</span>
+              </div>
+              <div class="dossier-row">
+                <span class="lbl">AVAILABILITY:</span>
+                <span class="val text-cyber-green font-semibold">Immediate Joiner</span>
+              </div>
+              <div class="dossier-row">
+                <span class="lbl">RELOCATION:</span>
+                <span class="val text-cyber-blue">Open to Relocation (Any Cybersecurity Hub)</span>
+              </div>
+              <div class="dossier-row">
+                <span class="lbl">LANGUAGES:</span>
+                <span class="val">English, Hindi, Gujarati</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Why Hire Gautam Card -->
+          <div class="dashboard-panel panel-why-hire card-col-2">
+            <div class="panel-header">
+              <div class="panel-title"><i data-lucide="shield-check"></i> RECRUITING HIGHLIGHTS</div>
+            </div>
+            <div class="panel-body recruiter-highlights-body">
+              <ul class="dossier-bullet-list">
+                <li>
+                  <i data-lucide="check-circle" class="text-cyber-green"></i>
+                  <div>
+                    <strong>Comprehensive Training</strong>: MCA in Cybersecurity & Forensics equips me with deep concepts in disk analysis, SIEM mapping, and vulnerability research.
+                  </div>
+                </li>
+                <li>
+                  <i data-lucide="check-circle" class="text-cyber-green"></i>
+                  <div>
+                    <strong>Real Intern Experience</strong>: Actively performed audits, configured SUID auditing policies, traced malware events via Wireshark, and generated CVSS vulnerability reports.
+                  </div>
+                </li>
+                <li>
+                  <i data-lucide="check-circle" class="text-cyber-green"></i>
+                  <div>
+                    <strong>Innovative Mindset</strong>: Designed a custom ML drug-trafficking alert pipeline and implemented cryptographic SHA chains for audit log integrity.
+                  </div>
+                </li>
+                <li>
+                  <i data-lucide="check-circle" class="text-cyber-green"></i>
+                  <div>
+                    <strong>Dual Stack</strong>: Excellent balance between Offensive Security (Penetration Testing) and Defensive Incident Response (SOC & Forensics).
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Recruiter Navigation/CTAs -->
+          <div class="dashboard-panel panel-recruiter-actions card-col-4">
+            <div class="panel-header">
+              <div class="panel-title"><i data-lucide="cog"></i> QUICK ACTION INTERFACE</div>
+            </div>
+            <div class="panel-body recruiter-actions-body">
+              <div class="actions-grid">
+                <button class="recruiter-action-card" id="recruiter-open-terminal-btn">
+                  <i data-lucide="terminal" class="text-cyber-purple"></i>
+                  <h4>Interact Terminal</h4>
+                  <p>Open root console and query skills manually.</p>
+                </button>
+                
+                <button class="recruiter-action-card" id="recruiter-view-lab-btn">
+                  <i data-lucide="network" class="text-cyber-blue"></i>
+                  <h4>Inspect Lab Sandbox</h4>
+                  <p>View visual forensic timelines and network topologies.</p>
+                </button>
+                
+                <button class="recruiter-action-card" id="recruiter-verify-hackathon-btn">
+                  <i data-lucide="award" class="text-cyber-green"></i>
+                  <h4>View Achievements</h4>
+                  <p>Explore the details of Vadodara Hackathon 5.0 project.</p>
+                </button>
+
+                <button class="recruiter-action-card" id="recruiter-contact-btn">
+                  <i data-lucide="calendar" class="text-cyber-green"></i>
+                  <h4>Schedule Interview</h4>
+                  <p>Submit an inquiry and request availability details.</p>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 8: CONTACT GATEWAY -->
+    <section id="view-contact" class="viewport-section hidden">
+      <div class="section-container">
+        <h2 class="view-title"><i data-lucide="mail"></i> SECURE COMMUNICATIONS PANEL</h2>
+        <p class="view-subtitle">Establish an encrypted link or submit inquiries directly to my security operations inbox.</p>
+
+        <div class="contact-wrapper">
+          <div class="contact-details-box">
+            <div class="dashboard-panel contact-info-panel">
+              <div class="panel-header">
+                <div class="panel-title"><i data-lucide="fingerprint"></i> SECURE CHANNELS</div>
+              </div>
+              <div class="panel-body contact-info-body">
+                <div class="contact-item">
+                  <div class="contact-icon-wrapper"><i data-lucide="mail"></i></div>
+                  <div class="contact-text-wrapper">
+                    <span class="label">EMAIL INBOX</span>
+                    <a href="mailto:gautam6213@gmail.com" class="val text-cyber-green link">gautam6213@gmail.com</a>
+                  </div>
+                </div>
+                <div class="contact-item">
+                  <div class="contact-icon-wrapper"><i data-lucide="phone"></i></div>
+                  <div class="contact-text-wrapper">
+                    <span class="label">SECURE LINE</span>
+                    <a href="tel:+918780789081" class="val text-cyber-green link">+91 8780789081</a>
+                  </div>
+                </div>
+                <div class="contact-item">
+                  <div class="contact-icon-wrapper"><i data-lucide="map-pin"></i></div>
+                  <div class="contact-text-wrapper">
+                    <span class="label">OPERATIONAL LOCATION</span>
+                    <span class="val">Vadodara, Gujarat, India</span>
+                  </div>
+                </div>
+                <div class="contact-item">
+                  <div class="contact-icon-wrapper"><i data-lucide="clock"></i></div>
+                  <div class="contact-text-wrapper">
+                    <span class="label">AVAILABILITY</span>
+                    <span class="val text-cyber-green">Immediate Joiner / Active Status</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- QR code to scan -->
+            <div class="dashboard-panel contact-qr-panel">
+              <div class="panel-header">
+                <div class="panel-title"><i data-lucide="qr-code"></i> SCAN DOSSIER LINK</div>
+              </div>
+              <div class="panel-body qr-body">
+                <div class="qr-code-placeholder" id="qr-container">
+                  <!-- Custom SVG QR Code -->
+                </div>
+                <div class="qr-details">
+                  <p>Scan this QR to download Gautam's digital vCard or load the mobile-optimized portfolio directly on your smartphone.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Contact Form Panel -->
+          <div class="dashboard-panel contact-form-panel">
+            <div class="panel-header">
+              <div class="panel-title"><i data-lucide="lock"></i> SUBMIT ENCRYPTED TRANSMISSION</div>
+              <div class="panel-status"><span class="pulse-dot green"></span> Channel Secure</div>
+            </div>
+            <div class="panel-body">
+              <form id="secure-contact-form" class="secure-form">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="contact-name">SENDER IDENTITY (Name)</label>
+                    <div class="input-wrapper">
+                      <i data-lucide="user"></i>
+                      <input type="text" id="contact-name" name="name" required placeholder="Recruiter / Company Name">
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label for="contact-email">RETURN ADDRESS (Email)</label>
+                    <div class="input-wrapper">
+                      <i data-lucide="mail"></i>
+                      <input type="email" id="contact-email" name="email" required placeholder="name@company.com">
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="contact-subject">TRANSMISSION SUBJECT</label>
+                  <div class="input-wrapper">
+                    <i data-lucide="shield-question"></i>
+                    <input type="text" id="contact-subject" name="subject" required placeholder="Hiring, Interview Schedule, Collaboration">
+                  </div>
+                </div>
+                
+                <div class="form-group">
+                  <label for="contact-message">TRANSMISSION BODY (Message)</label>
+                  <div class="textarea-wrapper">
+                    <textarea id="contact-message" name="message" required placeholder="Enter details of your cybersecurity position, interview request, or inquiry..."></textarea>
+                  </div>
+                </div>
+
+                <div class="form-encryption-stats">
+                  <span>CRYPTO STACK: ECDH + AES-GCM 256bit</span>
+                  <span id="char-counter">0 / 1000 Bytes</span>
+                </div>
+
+                <button type="submit" class="form-submit-btn" id="contact-submit-btn">
+                  <i data-lucide="send" id="submit-icon"></i>
+                  <span>SIGN & DISPATCH INQUIRY</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 9: RESUME VIEW -->
+    <section id="view-resume" class="viewport-section hidden">
+      <div class="section-container">
+        <h2 class="view-title"><i data-lucide="file-text"></i> PROFESSIONAL RESUME DOSSIER</h2>
+        <p class="view-subtitle">Audit, download, or print Gautam's cybersecurity resume files.</p>
+
+        <div class="resume-wrapper">
+          <div class="resume-actions-banner">
+            <div class="resume-meta-info">
+              <i data-lucide="file-check" class="text-cyber-green flex-shrink-0" style="width: 28px; height: 28px;"></i>
+              <div class="resume-meta-txt">
+                <h4>Gautam_Baldaniya_Cybersecurity_Resume.pdf</h4>
+                <p>Format: PDF Document | ATS-Friendly | Verifiable Signature</p>
+              </div>
+            </div>
+            <div class="resume-banner-buttons">
+              <a href="file:///C:/Users/gauta/Downloads/Gautam_Baldaniya_Cybersecurity_Resume.pdf" target="_blank" class="btn btn-primary">
+                <i data-lucide="external-link"></i><span>OPEN PDF DIRECTLY</span>
+              </a>
+              <a href="file:///C:/Users/gauta/Downloads/Gautam_Baldaniya_Cybersecurity_Resume.pdf" download class="btn btn-secondary">
+                <i data-lucide="download"></i><span>DOWNLOAD PDF</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Interactive HTML Resume Preview -->
+          <div class="dashboard-panel resume-preview-panel">
+            <div class="panel-header">
+              <div class="panel-title"><i data-lucide="eye"></i> SECURE DOSSIER PREVIEW</div>
+              <div class="panel-status"><span class="pulse-dot green"></span> Verified Profile</div>
+            </div>
+            <div class="panel-body resume-preview-body">
+              <div class="html-resume-header">
+                <h2>BALDANIYA GAUTAM RAMESHBHAI</h2>
+                <p class="resume-spec text-cyber-green">Cybersecurity Professional • VAPT • SOC • Digital Forensics</p>
+                <div class="resume-contacts">
+                  <span>gautam6213@gmail.com</span> | 
+                  <span>+91-8780789081</span> | 
+                  <span>linkedin.com/in/gautam6213</span> | 
+                  <span>github.com/BaldaniyaGautam6213</span>
+                </div>
+              </div>
+
+              <!-- Top Highlight Box -->
+              <div class="resume-highlight-box">
+                <i data-lucide="award" class="text-cyber-yellow"></i>
+                <div>
+                  <strong>2nd Place / 428 Teams</strong> — Vadodara Hackathon 5.0 | AI-Powered Cybersecurity Threat Detection System | Selected for Tech Expo 2025
+                </div>
+              </div>
+
+              <!-- Professional Summary -->
+              <div class="resume-sec">
+                <h3 class="resume-sec-title">PROFESSIONAL SUMMARY</h3>
+                <p>
+                  MCA — Cyber Security & Forensics, Parul University (2024-2026). Cybersecurity fresher with genuine hands-on experience spanning offensive security (VAPT, ethical hacking), defensive operations (SOC, security monitoring, incident response), and digital forensics (disk imaging, memory forensics). Secured 2nd place among 428 teams at Vadodara Hackathon 5.0 building an AI-powered cybersecurity threat detection system — selected for Tech Expo 2025. Currently interning as Cybersecurity Analyst at Dharma Infotech, Vadodara. Immediately available, open to relocation, and open to any cybersecurity role — VAPT, SOC, GRC, or Forensics.
+                </p>
+              </div>
+
+              <!-- Open to these role types -->
+              <div class="resume-sec">
+                <h3 class="resume-sec-title">OPEN TO THESE ROLE TYPES</h3>
+                <div class="resume-roles-grid">
+                  <div class="role-item"><i data-lucide="check" class="text-cyber-green"></i> VAPT / Penetration Testing</div>
+                  <div class="role-item"><i data-lucide="check" class="text-cyber-green"></i> SOC Analyst (L1)</div>
+                  <div class="role-item"><i data-lucide="check" class="text-cyber-green"></i> Cybersecurity Intern / Analyst</div>
+                  <div class="role-item"><i data-lucide="check" class="text-cyber-green"></i> Digital Forensics Analyst</div>
+                  <div class="role-item"><i data-lucide="check" class="text-cyber-green"></i> Red Team / Ethical Hacking</div>
+                  <div class="role-item"><i data-lucide="check" class="text-cyber-green"></i> Security Operations & Monitoring</div>
+                </div>
+              </div>
+
+              <!-- Skills table -->
+              <div class="resume-sec">
+                <h3 class="resume-sec-title">TECHNICAL SKILLS</h3>
+                <table class="resume-skills-table">
+                  <tr>
+                    <td class="skill-cat-lbl">Penetration Testing & VAPT</td>
+                    <td>Burp Suite, Metasploit, Nmap, OWASP ZAP, ffuf — full-cycle web, network & API VAPT</td>
+                  </tr>
+                  <tr>
+                    <td class="skill-cat-lbl">Web App Security</td>
+                    <td>OWASP Top 10: SQLi, XSS, CSRF, Auth Bypass, Security Misconfiguration, API Security</td>
+                  </tr>
+                  <tr>
+                    <td class="skill-cat-lbl">SOC & Security Ops</td>
+                    <td>SIEM Concepts (Splunk/QRadar/Sentinel), Log Analysis, Incident Detection & Response, IDS/IPS</td>
+                  </tr>
+                  <tr>
+                    <td class="skill-cat-lbl">Digital Forensics</td>
+                    <td>Autopsy, FTK Imager, Volatility 3, Disk Image Analysis, Memory Forensics, Chain of Custody</td>
+                  </tr>
+                  <tr>
+                    <td class="skill-cat-lbl">Networking & OS</td>
+                    <td>TCP/IP, DNS, HTTP/HTTPS, Wireshark, Windows Security, Linux (Kali), Network Security Fundamentals</td>
+                  </tr>
+                  <tr>
+                    <td class="skill-cat-lbl">Threat Intelligence</td>
+                    <td>MITRE ATT&CK; TTP Mapping, Behavioral Anomaly Detection, Attacker Timeline Reconstruction</td>
+                  </tr>
+                  <tr>
+                    <td class="skill-cat-lbl">Programming & Scripting</td>
+                    <td>Python, Bash, JavaScript; Git, Postman, VS Code, Django, ReactJS</td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- Experience -->
+              <div class="resume-sec">
+                <h3 class="resume-sec-title">EXPERIENCE</h3>
+                <div class="resume-exp-item">
+                  <div class="exp-title-row">
+                    <strong>Cybersecurity Analyst Intern</strong>
+                    <span class="exp-date">Present</span>
+                  </div>
+                  <div class="exp-org-row">Dharma Infotech, Vadodara</div>
+                  <ul class="resume-bullets">
+                    <li>
+                      <strong>Executed end-to-end penetration tests on 5+ target machines across web and network layers</strong> by performing recon with Nmap/ffuf, exploiting OWASP Top 10 vulnerabilities, escalating privileges via SUID binary abuse and sudo misconfiguration audits, structured pentest reports with CVSS-rated findings, attack vectors, and remediation steps.
+                    </li>
+                    <li>
+                      <strong>Monitored and investigated security events simulating SOC-level workflows</strong> by analysing network traffic with Wireshark and mapping observed activity to MITRE ATT&CK; TTPs for threat detection and triage, detailed incident reports with severity ratings and escalation recommendations.
+                    </li>
+                    <li>
+                      <strong>Built a Tamper-Evident Logging System to simulate enterprise audit-log integrity controls</strong> by implementing SHA-based cryptographic chaining to detect unauthorized log modification, deletion, and reordering, 100% detection rate across all tamper scenarios in enterprise-simulated testing.
+                    </li>
+                    <li>
+                      <strong>Conducted digital forensic investigations on compromised Windows systems</strong> by performing memory forensics with Volatility 3 and disk image analysis using Autopsy and FTK Imager, recovering VeraCrypt-encrypted USB evidence, complete attacker timeline reconstruction identifying persistence mechanisms and lateral movement.
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Projects -->
+              <div class="resume-sec">
+                <h3 class="resume-sec-title">PROJECTS</h3>
+                <div class="resume-exp-item">
+                  <div class="exp-title-row">
+                    <strong>AI-Powered Drug Trafficking Detection System</strong>
+                    <span class="exp-date">Sep 2025</span>
+                  </div>
+                  <div class="exp-org-row">Python, Django, ReactJS, Machine Learning, NLP | Team: 6 | Vadodara Hackathon 5.0 (2nd / 428 Teams)</div>
+                  <ul class="resume-bullets">
+                    <li>
+                      <strong>Secured 2nd place among 428 competing teams</strong> by engineering an ML-powered threat intelligence pipeline using NLP classifiers and behavioral anomaly detection to identify cybercriminal activity on social media platforms, selected for Tech Expo 2025 by industry and academic judges.
+                    </li>
+                  </ul>
+                </div>
+                <div class="resume-exp-item" style="margin-top: 1rem;">
+                  <div class="exp-title-row">
+                    <strong>Password Generator GUI Application</strong>
+                    <span class="exp-date">2024</span>
+                  </div>
+                  <div class="exp-org-row">Python, Tkinter</div>
+                  <ul class="resume-bullets">
+                    <li>
+                      <strong>Delivered a cryptographically secure password generator</strong> by implementing configurable entropy controls across character classes with a Tkinter GUI, output aligned with NIST SP 800-63B password strength guidelines.
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Education -->
+              <div class="resume-sec">
+                <h3 class="resume-sec-title">EDUCATION</h3>
+                <div class="edu-item">
+                  <div class="exp-title-row">
+                    <strong>M.C.A. — Cyber Security & Forensics</strong>
+                    <span class="exp-date">2024–2026</span>
+                  </div>
+                  <div class="exp-org-row">Parul University, Vadodara • CGPA: 7.85/10</div>
+                </div>
+                <div class="edu-item" style="margin-top: 0.75rem;">
+                  <div class="exp-title-row">
+                    <strong>B.C.A. — Science</strong>
+                    <span class="exp-date">2021–2024</span>
+                  </div>
+                  <div class="exp-org-row">Maharaja Sayajirao University of Baroda • CGPA: 6.67/10</div>
+                </div>
+              </div>
+
+              <!-- Additional details -->
+              <div class="resume-sec" style="border-bottom: none;">
+                <div class="resume-footer-details">
+                  Availability: Immediate Joiner | Open to: Any Cybersecurity Role & Relocation | Languages: English, Hindi, Gujarati
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 10: VISITOR AUDITS (ADMIN GATEWAY) -->
+    <section id="view-audits" class="viewport-section hidden">
+      <div class="section-container">
+        <h2 class="view-title" id="admin-view-title"><i data-lucide="user-x"></i> SECURE VISITOR AUDIT TELEMETRY</h2>
+        <p class="view-subtitle" id="admin-view-subtitle">Live tracking of recruiters, hiring systems, and device telemetry visiting Gautam-Sec.</p>
+
+        <!-- Admin Authentication Gateway -->
+        <div class="dashboard-panel admin-auth-panel" id="admin-login-panel">
+          <div class="panel-header">
+            <div class="panel-title"><i data-lucide="lock"></i> ADMINISTRATOR SECURE PORTAL GATE</div>
+            <div class="panel-status"><span class="pulse-dot red"></span> Session Locked</div>
+          </div>
+          <div class="panel-body admin-auth-body">
+            <div class="auth-gate-wrapper">
+              <div class="auth-gate-logo-icon">
+                <i data-lucide="fingerprint" class="text-cyber-red animate-pulse" style="width: 44px; height: 44px; margin-bottom: 1rem;"></i>
+              </div>
+              <h3>SECURE PORTAL AUDIT ACCESS</h3>
+              <p>Verify administrative signatures to unlock visitor telemetry logs database.</p>
+              
+              <form id="admin-auth-form" class="auth-gate-form">
+                <div class="form-group">
+                  <label for="admin-user">ADMINISTRATOR USERNAME</label>
+                  <input type="text" id="admin-user" required autocomplete="off" placeholder="Enter username ID">
+                </div>
+                <div class="form-group">
+                  <label for="admin-pass">ACCESS PASSCODE</label>
+                  <div class="password-input-wrapper" style="position: relative; display: flex; align-items: center;">
+                    <input type="password" id="admin-pass" required placeholder="••••••••••••" style="width: 100%; padding-right: 2.5rem;">
+                    <button type="button" id="toggle-admin-pass-btn" title="Toggle password visibility" style="position: absolute; right: 0.75rem; color: var(--text-muted); cursor: pointer;">
+                      <i data-lucide="eye" style="width: 16px; height: 16px;"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="auth-error-message hidden" id="admin-auth-error">
+                  <i data-lucide="alert-triangle"></i><span>SIGNATURE FAILED: ACCESS DENIED</span>
+                </div>
+                <button type="submit" class="auth-submit-btn">
+                  <i data-lucide="key-round"></i>
+                  <span>DECRYPT AUDIT LOGS</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <!-- Authenticated Telemetry Layout (Hidden by default) -->
+        <div class="admin-authed-content hidden" id="admin-authed-content">
+          <!-- Live Session Statistics -->
+          <div class="audit-stats-grid">
+            <div class="dashboard-panel audit-stat-card">
+              <div class="panel-body">
+                <div class="audit-stat-val text-cyber-green" id="audit-stat-total">0</div>
+                <div class="audit-stat-lbl">TOTAL RECORDED SESSIONS</div>
+              </div>
+            </div>
+            <div class="dashboard-panel audit-stat-card">
+              <div class="panel-body">
+                <div class="audit-stat-val text-cyber-blue" id="audit-stat-desktop">0</div>
+                <div class="audit-stat-lbl">DESKTOP / WORKSTATIONS</div>
+              </div>
+            </div>
+            <div class="dashboard-panel audit-stat-card">
+              <div class="panel-body">
+                <div class="audit-stat-val text-cyber-purple" id="audit-stat-mobile">0</div>
+                <div class="audit-stat-lbl">MOBILE DEVICES</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ADMIN ACCOUNTS MANAGEMENT PANEL -->
+          <div class="dashboard-panel admin-accounts-panel" style="margin-bottom: 2rem;">
+            <div class="panel-header">
+              <div class="panel-title"><i data-lucide="users-2"></i> ADMINISTRATIVE ACCOUNT PRIVILEGES</div>
+              <div class="panel-status"><span class="pulse-dot green"></span> Core Stack</div>
+            </div>
+            <div class="panel-body" style="padding: 1.5rem; display: grid; grid-template-columns: 1.5fr 1fr; gap: 1.5rem;">
+              <div class="accounts-table-wrap">
+                <table class="audits-data-table" style="font-size: 0.75rem;">
+                  <thead>
+                    <tr>
+                      <th>ADMIN USERNAME</th>
+                      <th>ROLE PRIVILEGES</th>
+                      <th>STATUS</th>
+                      <th>ACTIONS</th>
+                    </tr>
+                  </thead>
+                  <tbody id="admin-accounts-list-body">
+                    <!-- Loaded dynamically -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="add-account-form-wrap" style="border-left: 1px solid var(--border-color); padding-left: 1.5rem;">
+                <h4 style="font-size: 0.8rem; font-weight: 800; letter-spacing: 0.5px; color: var(--cyber-green); margin-bottom: 1rem; text-transform: uppercase;">Register New Administrator</h4>
+                <form id="add-admin-account-form" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                  <div class="form-group">
+                    <label for="new-admin-user" style="font-size: 0.6rem;">NEW USERNAME</label>
+                    <input type="text" id="new-admin-user" required autocomplete="off" placeholder="e.g. gautam_sec" style="font-size: 0.75rem; padding: 0.4rem 0.6rem;">
+                  </div>
+                  <div class="form-group">
+                    <label for="new-admin-pass" style="font-size: 0.6rem;">NEW PASSWORD</label>
+                    <input type="password" id="new-admin-pass" required placeholder="••••••••••••" style="font-size: 0.75rem; padding: 0.4rem 0.6rem;">
+                  </div>
+                  <button type="submit" class="header-action-btn" style="width: 100%; justify-content: center; font-size: 0.7rem; padding: 0.45rem 1rem; border-color: var(--cyber-green); color: var(--cyber-green);">
+                    <i data-lucide="plus-circle" style="width: 12px; height: 12px;"></i>
+                    <span>PROVISION ACCOUNT</span>
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recorded Recruiter telemetry logs -->
+          <div class="dashboard-panel audits-table-panel">
+            <div class="panel-header">
+              <div class="panel-title"><i data-lucide="shield-alert"></i> RECORDED VISITOR LOGS</div>
+              <button class="header-action-btn" id="clear-audits-btn" style="border-color: rgba(239, 68, 68, 0.4); color: var(--cyber-red); background: rgba(239, 68, 68, 0.05);">
+                <i data-lucide="trash-2"></i>
+                <span>RESET AUDIT TELEMETRY</span>
+              </button>
+            </div>
+            <div class="panel-body audits-table-container">
+              <table class="audits-data-table">
+                <thead>
+                  <tr>
+                    <th>TIMESTAMP</th>
+                    <th>IP ADDRESS</th>
+                    <th>DEVICE TYPE</th>
+                    <th>PLATFORM / OS</th>
+                    <th>SCREEN METRICS</th>
+                    <th>USER AGENT / PHONE SPEC</th>
+                    <th>FETCHABLE METRICS</th>
+                  </tr>
+                </thead>
+                <tbody id="audits-table-body">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Global Command Palette Search Modal -->
+  <div class="modal hidden" id="command-palette-modal">
+    <div class="command-palette-wrap">
+      <div class="search-input-wrap">
+        <i data-lucide="terminal" class="text-cyber-green"></i>
+        <input type="text" id="command-search-input" placeholder="Type a view or skill name... (e.g. VAPT, Lab, Autopsy, Resume)">
+        <span class="cmd-esc-badge">ESC</span>
+      </div>
+      <div class="command-suggestions" id="command-suggestions-list">
+        <!-- populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Floating Navigation Dock -->
+  <nav class="floating-nav-dock" id="bottom-nav-dock">
+    <div class="dock-btn-wrapper active" data-view="hero" title="Landing Console">
+      <button class="dock-btn"><i data-lucide="home"></i></button>
+      <span class="dock-tooltip">Home</span>
+    </div>
+    <div class="dock-btn-wrapper" data-view="dashboard" title="SOC Telemetry Dashboard">
+      <button class="dock-btn"><i data-lucide="activity"></i></button>
+      <span class="dock-tooltip">SOC Panel</span>
+    </div>
+    <div class="dock-btn-wrapper" data-view="lab" title="Forensics & Security Lab">
+      <button class="dock-btn"><i data-lucide="cpu"></i></button>
+      <span class="dock-tooltip">Lab & Forensics</span>
+    </div>
+    <div class="dock-btn-wrapper" data-view="experience" title="Internship Timelines">
+      <button class="dock-btn"><i data-lucide="git-branch"></i></button>
+      <span class="dock-tooltip">Experience</span>
+    </div>
+    <div class="dock-btn-wrapper" data-view="projects" title="Cybersecurity Projects">
+      <button class="dock-btn"><i data-lucide="folder-git-2"></i></button>
+      <span class="dock-tooltip">Projects</span>
+    </div>
+    <div class="dock-btn-wrapper" data-view="credentials" title="Certificates & CTFs">
+      <button class="dock-btn"><i data-lucide="file-badge"></i></button>
+      <span class="dock-tooltip">Credentials</span>
+    </div>
+    <div class="dock-btn-wrapper" data-view="resume" title="Audited Resume Files">
+      <button class="dock-btn"><i data-lucide="file-text"></i></button>
+      <span class="dock-tooltip">Resume</span>
+    </div>
+    <div class="dock-btn-wrapper" data-view="recruiter" title="Recruiter Gateway">
+      <button class="dock-btn"><i data-lucide="briefcase"></i></button>
+      <span class="dock-tooltip">Recruiter</span>
+    </div>
+    <div class="dock-btn-wrapper" data-view="contact" title="Secure Encrypted Contact">
+      <button class="dock-btn"><i data-lucide="mail"></i></button>
+      <span class="dock-tooltip">Contact</span>
+    </div>
+  </nav>
+
+  <!-- Interactive Terminal Drawer -->
+  <div class="terminal-drawer collapsed" id="terminal-drawer">
+    <div class="terminal-header" id="terminal-header-bar">
+      <div class="terminal-title">
+        <i data-lucide="terminal" class="text-cyber-green"></i>
+        <span>SECURE BASH TERMINAL - guest@gautam-sec:~$</span>
+      </div>
+      <div class="terminal-window-controls">
+        <button id="terminal-minimize-btn" title="Toggle Terminal Drawer"><i data-lucide="chevrons-up" id="term-toggle-icon"></i></button>
+        <button id="terminal-expand-btn" title="Fullscreen Shell"><i data-lucide="maximize-2" id="term-expand-icon"></i></button>
+      </div>
+    </div>
+    <div class="terminal-body" id="terminal-output-body">
+      <div class="terminal-welcome">
+        <p>================================================================================</p>
+        <p>Welcome to Baldaniya Gautam's Cybersecurity Command Shell [v1.0.0]</p>
+        <p>Session ID: guest_client_session_established_auth_lvl_0</p>
+        <p>Type <span class="text-cyber-green">help</span> to view all registered security directives and command scripts.</p>
+        <p>================================================================================</p>
+      </div>
+      <div class="terminal-history" id="terminal-logs-history"></div>
+      <div class="terminal-input-row">
+        <span class="terminal-prompt">guest@gautam-sec:~$</span>
+        <input type="text" id="terminal-interactive-input" autofocus autocomplete="off" spellcheck="false" placeholder="Type command...">
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Project Case Study Container -->
+  <div class="modal hidden" id="project-case-study-modal">
+    <div class="case-study-modal-wrap" id="case-study-modal-content">
+      <!-- loaded dynamically -->
+    </div>
+  </div>
+
+  <!-- Alert Banner system for micro-alerts -->
+  <div class="notification-center" id="notification-center"></div>
+
+  <!-- Scripts Loading -->
+  <script src="src/js/data.js"></script>
+  <script src="src/js/globe.js"></script>
+  <script src="src/js/dashboard.js"></script>
+  <script src="src/js/lab.js"></script>
+  <script src="src/js/terminal.js"></script>
+  <script src="src/js/tracker.js"></script>
+  <script src="src/js/app.js"></script>
+</body>
+</html>
