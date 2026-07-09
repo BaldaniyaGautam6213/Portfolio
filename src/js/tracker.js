@@ -7,12 +7,21 @@
   const STORAGE_KEY_VISIT_COUNT = "gautam_sec_recruiter_visits";
   const STORAGE_KEY_ADMINS = "gautam_sec_admin_credentials";
 
+  // Supabase Configuration
+  // NOTE: Paste your Supabase project credentials here.
+  const SUPABASE_URL = "https://hqbyydyrxfzpcfvohw.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_kXE_vkmlr-C0X5tytY26Mg_C3ZNRUHG";
+  let client = null;
+  if (typeof supabase !== 'undefined' && SUPABASE_URL !== "YOUR_SUPABASE_URL" && SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY") {
+    client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+
   // Expose triggers
-  window.initTracker = function() {
-    trackCurrentSession();
-    updateDashboardCounter();
+  window.initTracker = async function() {
+    await trackCurrentSession();
+    await updateDashboardCounter();
     setupAdminAuditListeners();
-    initAdminAccounts();
+    await initAdminAccounts();
   };
 
   /**
@@ -203,17 +212,26 @@
         rawTimestamp: Date.now()
       };
 
-      let auditLogs = getAuditLogs();
-      const lastEntry = auditLogs[0];
-      if (!lastEntry || (Date.now() - lastEntry.rawTimestamp > 3000) || lastEntry.ip !== newAuditEntry.ip) {
-        auditLogs.unshift(newAuditEntry);
-        if (auditLogs.length > 100) {
-          auditLogs.pop();
+      if (client) {
+        // Log telemetry online directly to Supabase
+        const { error } = await client.from('visitor_audits').insert([ newAuditEntry ]);
+        if (error) {
+          console.error("Supabase telemetry insert error: ", error);
         }
-        localStorage.setItem(STORAGE_KEY_AUDITS, JSON.stringify(auditLogs));
+      } else {
+        // Fallback to local storage
+        let auditLogs = getAuditLogsLocal();
+        const lastEntry = auditLogs[0];
+        if (!lastEntry || (Date.now() - lastEntry.rawTimestamp > 3000) || lastEntry.ip !== newAuditEntry.ip) {
+          auditLogs.unshift(newAuditEntry);
+          if (auditLogs.length > 100) {
+            auditLogs.pop();
+          }
+          localStorage.setItem(STORAGE_KEY_AUDITS, JSON.stringify(auditLogs));
 
-        let visitCount = parseInt(localStorage.getItem(STORAGE_KEY_VISIT_COUNT) || "0") + 1;
-        localStorage.setItem(STORAGE_KEY_VISIT_COUNT, visitCount.toString());
+          let visitCount = parseInt(localStorage.getItem(STORAGE_KEY_VISIT_COUNT) || "0") + 1;
+          localStorage.setItem(STORAGE_KEY_VISIT_COUNT, visitCount.toString());
+        }
       }
 
     } catch (e) {
@@ -224,18 +242,29 @@
   /**
    * Updates the counter indicators inside the main SOC Dashboard
    */
-  function updateDashboardCounter() {
+  async function updateDashboardCounter() {
     const visitsCounterEl = document.getElementById('recruiter-visits-count');
     if (visitsCounterEl) {
+      if (client) {
+        try {
+          const { data: count, error } = await client.rpc('get_total_visitor_count');
+          if (!error && count !== null) {
+            visitsCounterEl.innerText = count;
+            return;
+          }
+        } catch (e) {
+          console.error("Error fetching total visits from Supabase:", e);
+        }
+      }
       const visitCount = localStorage.getItem(STORAGE_KEY_VISIT_COUNT) || "1";
       visitsCounterEl.innerText = visitCount;
     }
   }
 
   /**
-   * Retrieves array of visitor logs from storage
+   * Helper to retrieve fallback logs from local storage
    */
-  function getAuditLogs() {
+  function getAuditLogsLocal() {
     const data = localStorage.getItem(STORAGE_KEY_AUDITS);
     if (!data) {
       const seeded = [
@@ -270,9 +299,36 @@
   }
 
   /**
+   * Retrieves array of visitor logs
+   */
+  async function getAuditLogs() {
+    if (client) {
+      try {
+        const adminUser = sessionStorage.getItem('gautam_sec_admin_user');
+        const adminPass = sessionStorage.getItem('gautam_sec_admin_pass');
+        if (adminUser && adminPass) {
+          const { data, error } = await client.rpc('get_visitor_audits', {
+            p_admin_user: adminUser,
+            p_admin_pass: adminPass
+          });
+          if (!error && data) return data;
+          console.error("Error fetching online logs:", error);
+        }
+      } catch (e) {
+        console.error("Error fetching online logs:", e);
+      }
+    }
+    return getAuditLogsLocal();
+  }
+
+  /**
    * Initialize administrators database
    */
-  function initAdminAccounts() {
+  async function initAdminAccounts() {
+    if (client) {
+      await renderAdminAccounts();
+      return;
+    }
     const data = localStorage.getItem(STORAGE_KEY_ADMINS);
     let admins = [];
     if (data) {
@@ -289,13 +345,29 @@
     }
     
     localStorage.setItem(STORAGE_KEY_ADMINS, JSON.stringify(admins));
-    renderAdminAccounts();
+    await renderAdminAccounts();
   }
 
   /**
    * Retrieve admin accounts array
    */
-  function getAdminAccounts() {
+  async function getAdminAccounts() {
+    if (client) {
+      try {
+        const adminUser = sessionStorage.getItem('gautam_sec_admin_user');
+        const adminPass = sessionStorage.getItem('gautam_sec_admin_pass');
+        if (adminUser && adminPass) {
+          const { data, error } = await client.rpc('get_admin_accounts', {
+            p_admin_user: adminUser,
+            p_admin_pass: adminPass
+          });
+          if (!error && data) return data;
+          console.error("Error listing admin accounts:", error);
+        }
+      } catch (e) {
+        console.error("Error listing admin accounts:", e);
+      }
+    }
     const data = localStorage.getItem(STORAGE_KEY_ADMINS);
     return data ? JSON.parse(data) : [];
   }
@@ -303,11 +375,11 @@
   /**
    * Renders the administrative accounts privileges table
    */
-  function renderAdminAccounts() {
+  async function renderAdminAccounts() {
     const container = document.getElementById('admin-accounts-list-body');
     if (!container) return;
 
-    const admins = getAdminAccounts();
+    const admins = await getAdminAccounts();
     container.innerHTML = "";
 
     admins.forEach((admin, index) => {
@@ -334,14 +406,33 @@
     // Bind delete events
     const deleteBtns = container.querySelectorAll('.delete-admin-btn');
     deleteBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const username = btn.getAttribute('data-username');
         if (confirm(`Are you sure you want to revoke admin credentials for: ${username}?`)) {
-          let admins = getAdminAccounts();
+          if (client) {
+            try {
+              const adminUser = sessionStorage.getItem('gautam_sec_admin_user');
+              const adminPass = sessionStorage.getItem('gautam_sec_admin_pass');
+              const { data: success, error } = await client.rpc('revoke_admin_account', {
+                p_admin_user: adminUser,
+                p_admin_pass: adminPass,
+                p_target_user: username
+              });
+              if (success && !error) {
+                window.showNotification(`Admin account '${username}' deleted.`, "info");
+                await renderAdminAccounts();
+                return;
+              }
+              console.error("Revoke error:", error);
+            } catch (e) {
+              console.error("Revoke error:", e);
+            }
+          }
+          let admins = await getAdminAccounts();
           admins = admins.filter(a => a.username !== username);
           localStorage.setItem(STORAGE_KEY_ADMINS, JSON.stringify(admins));
           window.showNotification(`Admin account '${username}' deleted.`, "info");
-          renderAdminAccounts();
+          await renderAdminAccounts();
         }
       });
     });
@@ -352,7 +443,7 @@
   /**
    * Renders the visitor logs table in the admin panel
    */
-  window.renderAuditsTable = function() {
+  window.renderAuditsTable = async function() {
     const tableBody = document.getElementById('audits-table-body');
     const totalEl = document.getElementById('audit-stat-total');
     const desktopEl = document.getElementById('audit-stat-desktop');
@@ -360,7 +451,7 @@
 
     if (!tableBody) return;
 
-    const logs = getAuditLogs();
+    const logs = await getAuditLogs();
     tableBody.innerHTML = "";
 
     let desktopCount = 0;
@@ -405,8 +496,8 @@
     if (desktopEl) desktopEl.innerText = desktopCount;
     if (mobileEl) mobileEl.innerText = mobileCount;
     
-    // Update global dashboard counter if initialized
-    updateDashboardCounter();
+    // Update global dashboard counter
+    await updateDashboardCounter();
     
     // Re-create icons for table content
     if (typeof lucide !== 'undefined') {
@@ -472,25 +563,48 @@
     }
 
     if (authForm) {
-      authForm.addEventListener('submit', (e) => {
+      authForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const user = document.getElementById('admin-user').value.trim();
         const pass = document.getElementById('admin-pass').value.trim();
 
-        // Credentials validation from dynamic list
-        const admins = getAdminAccounts();
-        const matched = admins.find(a => a.username === user && a.passcode === pass);
+        let authenticated = false;
+        let role = "Provisioned Administrator";
 
-        if (matched) {
+        if (client) {
+          try {
+            const { data, error } = await client.rpc('check_admin_login', {
+              p_username: user,
+              p_passcode: pass
+            });
+            if (!error && data && data.length > 0 && data[0].is_valid) {
+              authenticated = true;
+              role = data[0].role || role;
+            }
+          } catch (e) {
+            console.error("Auth error:", e);
+          }
+        } else {
+          // Credentials validation from dynamic local list
+          const admins = await getAdminAccounts();
+          const matched = admins.find(a => a.username === user && a.passcode === pass);
+          if (matched) {
+            authenticated = true;
+            role = matched.role;
+          }
+        }
+
+        if (authenticated) {
           sessionStorage.setItem('gautam_sec_admin_authed', 'true');
           sessionStorage.setItem('gautam_sec_admin_user', user);
+          sessionStorage.setItem('gautam_sec_admin_pass', pass); // Store password in memory for DB API queries
           if (loginPanel) loginPanel.classList.add('hidden');
           if (authedContent) authedContent.classList.remove('hidden');
           if (authError) authError.classList.add('hidden');
 
           window.showNotification(`Administrator '${user}' verified.`, "success");
           window.checkAdminAuthState();
-          window.renderAuditsTable();
+          await window.renderAuditsTable();
         } else {
           if (authError) {
             authError.classList.remove('hidden');
@@ -505,14 +619,40 @@
 
     // Dynamic Admin Accounts Form Provisioning
     if (addAdminForm) {
-      addAdminForm.addEventListener('submit', (e) => {
+      addAdminForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const newUser = document.getElementById('new-admin-user').value.trim();
         const newPass = document.getElementById('new-admin-pass').value.trim();
 
         if (newUser === "" || newPass === "") return;
 
-        let admins = getAdminAccounts();
+        if (client) {
+          try {
+            const adminUser = sessionStorage.getItem('gautam_sec_admin_user');
+            const adminPass = sessionStorage.getItem('gautam_sec_admin_pass');
+            const { data: success, error } = await client.rpc('provision_admin_account', {
+              p_admin_user: adminUser,
+              p_admin_pass: adminPass,
+              p_new_user: newUser,
+              p_new_pass: newPass,
+              p_role: "Administrator",
+              p_status: "Active"
+            });
+            if (success && !error) {
+              window.showNotification(`Admin account '${newUser}' provisioned successfully!`, "success");
+              addAdminForm.reset();
+              await renderAdminAccounts();
+              return;
+            } else {
+              window.showNotification("provision error: Failed to register admin.", "error");
+              return;
+            }
+          } catch (e) {
+            console.error("Provision admin error:", e);
+          }
+        }
+
+        let admins = await getAdminAccounts();
         if (admins.find(a => a.username === newUser)) {
           window.showNotification("provision error: Admin username already exists.", "error");
           return;
@@ -529,18 +669,35 @@
         
         // Reset form and reload
         addAdminForm.reset();
-        renderAdminAccounts();
+        await renderAdminAccounts();
       });
     }
 
     const clearBtn = document.getElementById('clear-audits-btn');
     if (clearBtn) {
-      clearBtn.addEventListener('click', () => {
+      clearBtn.addEventListener('click', async () => {
         if (confirm("WARNING: Are you sure you want to clear recruiter visitor tracking logs? This deletes all persisted audit tables.")) {
+          if (client) {
+            try {
+              const adminUser = sessionStorage.getItem('gautam_sec_admin_user');
+              const adminPass = sessionStorage.getItem('gautam_sec_admin_pass');
+              const { data: success, error } = await client.rpc('clear_visitor_audits', {
+                p_admin_user: adminUser,
+                p_admin_pass: adminPass
+              });
+              if (success && !error) {
+                window.showNotification("Visitor audit logs reset successfully.", "info");
+                await window.renderAuditsTable();
+                return;
+              }
+            } catch (e) {
+              console.error("Clear audits error:", e);
+            }
+          }
           localStorage.removeItem(STORAGE_KEY_AUDITS);
           localStorage.setItem(STORAGE_KEY_VISIT_COUNT, "0");
           window.showNotification("Visitor audit logs reset successfully.", "info");
-          window.renderAuditsTable();
+          await window.renderAuditsTable();
         }
       });
     }
