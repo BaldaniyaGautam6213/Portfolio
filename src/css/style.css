@@ -3775,7 +3775,56 @@ input, textarea, select {
   25% { transform: translateX(-5px); }
   75% { transform: translateX(5px); }
 }
-
 .hidden {
   display: none !important;
+}
+
+/* Responsive adjustments for admin accounts dashboard */
+.admin-accounts-body {
+  padding: 1.5rem;
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: 1.5rem;
+}
+
+.add-account-form-wrap {
+  border-left: 1px solid var(--border-color);
+  padding-left: 1.5rem;
+}
+
+/* Ensure the login panel fits on mobile screens */
+.admin-auth-panel {
+  width: calc(100% - 2rem);
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .admin-accounts-body {
+    grid-template-columns: 1fr;
+  }
+  .add-account-form-wrap {
+    border-left: none;
+    border-top: 1px solid var(--border-color);
+    padding-left: 0;
+    padding-top: 1.5rem;
+  }
+}
+
+/* Mobile responsive navigation dock sizing */
+@media (max-width: 480px) {
+  .floating-nav-dock {
+    width: 95%;
+    padding: 0 0.5rem;
+    gap: 0.15rem;
+    height: 48px;
+    bottom: 0.5rem;
+  }
+  .dock-btn {
+    width: 32px;
+    height: 32px;
+  }
+  .dock-btn i {
+    width: 14px;
+    height: 14px;
+  }
 }

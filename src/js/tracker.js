@@ -17,11 +17,16 @@
   }
 
   // Expose triggers
-  window.initTracker = async function() {
-    await trackCurrentSession();
-    await updateDashboardCounter();
+  window.initTracker = function() {
+    // 1. Bind UI listeners immediately and synchronously so they are active instantly
     setupAdminAuditListeners();
-    await initAdminAccounts();
+
+    // 2. Load admin accounts locally or online
+    initAdminAccounts().catch(e => console.error("Error initializing admin accounts:", e));
+
+    // 3. Fire-and-forget the background tracking and statistics queries
+    trackCurrentSession().catch(e => console.error("Error tracking session:", e));
+    updateDashboardCounter().catch(e => console.error("Error updating counter:", e));
   };
 
   /**

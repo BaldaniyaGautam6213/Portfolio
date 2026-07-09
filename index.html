@@ -911,9 +911,9 @@
                 </div>
                 <div class="form-group">
                   <label for="admin-pass">ACCESS PASSCODE</label>
-                  <div class="password-input-wrapper" style="position: relative; display: flex; align-items: center;">
+                  <div class="password-input-wrapper" style="position: relative; display: flex; align-items: center; width: 100%;">
                     <input type="password" id="admin-pass" required placeholder="••••••••••••" style="width: 100%; padding-right: 2.5rem;">
-                    <button type="button" id="toggle-admin-pass-btn" title="Toggle password visibility" style="position: absolute; right: 0.75rem; color: var(--text-muted); cursor: pointer;">
+                    <button type="button" id="toggle-admin-pass-btn" title="Toggle password visibility" style="position: absolute; right: 0.75rem; color: var(--text-muted); cursor: pointer; background: none; border: none; padding: 0; display: flex; align-items: center; justify-content: center;">
                       <i data-lucide="eye" style="width: 16px; height: 16px;"></i>
                     </button>
                   </div>
@@ -960,7 +960,7 @@
               <div class="panel-title"><i data-lucide="users-2"></i> ADMINISTRATIVE ACCOUNT PRIVILEGES</div>
               <div class="panel-status"><span class="pulse-dot green"></span> Core Stack</div>
             </div>
-            <div class="panel-body" style="padding: 1.5rem; display: grid; grid-template-columns: 1.5fr 1fr; gap: 1.5rem;">
+            <div class="panel-body admin-accounts-body">
               <div class="accounts-table-wrap">
                 <table class="audits-data-table" style="font-size: 0.75rem;">
                   <thead>
@@ -976,7 +976,7 @@
                   </tbody>
                 </table>
               </div>
-              <div class="add-account-form-wrap" style="border-left: 1px solid var(--border-color); padding-left: 1.5rem;">
+              <div class="add-account-form-wrap">
                 <h4 style="font-size: 0.8rem; font-weight: 800; letter-spacing: 0.5px; color: var(--cyber-green); margin-bottom: 1rem; text-transform: uppercase;">Register New Administrator</h4>
                 <form id="add-admin-account-form" style="display: flex; flex-direction: column; gap: 0.75rem;">
                   <div class="form-group">
