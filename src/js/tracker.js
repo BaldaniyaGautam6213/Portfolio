@@ -548,7 +548,7 @@
       const deleteBtn = tr.querySelector('.delete-audit-btn');
       if (deleteBtn) {
         deleteBtn.addEventListener('click', () => {
-          window.deleteAuditRow(log.id, log.timestamp);
+          window.deleteAuditRow(log.id, log.timestamp, log.rawTimestamp);
         });
       }
 
@@ -851,10 +851,10 @@
           deletedAuditIds.clear();
           deletedAuditTimestamps.clear();
 
-          // Wipe table in Supabase using direct delete (requires DELETE RLS policy on visitor_audits)
+          // Wipe ALL rows in visitor_audits (use ip column which is always set)
           if (client) {
             try {
-              const { error } = await client.from('visitor_audits').delete().neq('id', -999999);
+              const { error } = await client.from('visitor_audits').delete().not('ip', 'is', null);
               if (error) console.error("Clear visitor_audits error:", error);
             } catch (e) {
               console.error("Clear audits error:", e);
@@ -938,7 +938,7 @@
     window.showNotification("Inquiry deleted successfully", "success");
   };
 
-  window.deleteAuditRow = async function(id, timestamp) {
+  window.deleteAuditRow = async function(id, timestamp, rawTimestamp) {
     const confirmed = await window.showCyberConfirm("Are you sure you want to delete this visitor log?");
     if (!confirmed) return;
     
@@ -951,6 +951,7 @@
     if (localData) {
       let logs = JSON.parse(localData);
       logs = logs.filter(log => {
+        if (rawTimestamp && log.rawTimestamp) return String(log.rawTimestamp) !== String(rawTimestamp);
         if (id && log.id) return String(log.id) !== String(id);
         return log.timestamp !== timestamp;
       });
@@ -962,15 +963,27 @@
       window.renderAuditsTable();
     }
     
-    // Delete from Supabase using direct table delete (requires DELETE RLS policy)
+    // Delete from Supabase - try multiple column matches for reliability
     if (client) {
       try {
-        if (id) {
+        let deleted = false;
+        // Try by rawTimestamp first (most unique)
+        if (rawTimestamp) {
+          const { error, count } = await client.from('visitor_audits').delete().eq('rawTimestamp', rawTimestamp);
+          if (!error) deleted = true;
+          else console.warn("visitor_audits delete by rawTimestamp error:", error);
+        }
+        // Try by id if rawTimestamp failed
+        if (!deleted && id) {
           const { error } = await client.from('visitor_audits').delete().eq('id', id);
-          if (error) console.warn("visitor_audits delete error:", error);
-        } else if (timestamp) {
+          if (!error) deleted = true;
+          else console.warn("visitor_audits delete by id error:", error);
+        }
+        // Try by timestamp string as last resort
+        if (!deleted && timestamp) {
           const { error } = await client.from('visitor_audits').delete().eq('timestamp', timestamp);
-          if (error) console.warn("visitor_audits delete error:", error);
+          if (!error) deleted = true;
+          else console.warn("visitor_audits delete by timestamp error:", error);
         }
       } catch (e) {
         console.error("Supabase delete error:", e);
