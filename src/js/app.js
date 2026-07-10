@@ -222,17 +222,18 @@
 
     currentActiveView = viewId;
 
-    // Trigger tab sub-views initialization or data updates
-    if (viewId === 'dashboard' || viewId === 'resume' || viewId === 'audits') {
-      // Re-trigger radar chart or layout redraws
+    // Re-trigger radar chart, globe, or layout redraws after browser reflow
+    setTimeout(() => {
       window.dispatchEvent(new Event('resize'));
-      if (viewId === 'audits') {
-        if (window.checkAdminAuthState) {
-          window.checkAdminAuthState();
-        }
-        if (window.renderAuditsTable) {
-          window.renderAuditsTable();
-        }
+    }, 50);
+
+    // Trigger tab sub-views data updates
+    if (viewId === 'audits') {
+      if (window.checkAdminAuthState) {
+        window.checkAdminAuthState();
+      }
+      if (window.renderAuditsTable) {
+        window.renderAuditsTable();
       }
     }
   }
@@ -698,7 +699,7 @@
         const inquiries = localData ? JSON.parse(localData) : [];
         const session = window.currentSessionTelemetry || {};
         const newInquiry = {
-          timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }) + '.' + String(new Date().getMilliseconds()).padStart(3, '0'),
+          timestamp: new Date().toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour12: false }) + '.' + String(new Date().getMilliseconds()).padStart(3, '0'),
           name: name,
           email: email,
           subject: subject,

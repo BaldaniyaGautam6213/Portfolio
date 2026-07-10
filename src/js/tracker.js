@@ -223,7 +223,7 @@
       }
 
       const newAuditEntry = {
-        timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }) + '.' + String(new Date().getMilliseconds()).padStart(3, '0'),
+        timestamp: new Date().toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour12: false }) + '.' + String(new Date().getMilliseconds()).padStart(3, '0'),
         ip: ipAddress,
         deviceType: deviceType,
         os: platform,
