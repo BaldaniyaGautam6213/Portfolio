@@ -1016,7 +1016,7 @@
                     <th>IP ADDRESS</th>
                     <th>DEVICE / OS</th>
                     <th>MESSAGE BODY</th>
-                    <th>ACTIONS</th>
+                    <th style="width: 80px; text-align: center;">ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody id="inquiries-table-body">
@@ -1046,7 +1046,7 @@
                     <th>SCREEN METRICS</th>
                     <th>USER AGENT / PHONE SPEC</th>
                     <th>FETCHABLE METRICS</th>
-                    <th>ACTIONS</th>
+                    <th style="width: 80px; text-align: center;">ACTIONS</th>
                   </tr>
                 </thead>
                 <tbody id="audits-table-body">
@@ -1071,6 +1071,27 @@
       </div>
       <div class="command-suggestions" id="command-suggestions-list">
         <!-- populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Cyber Confirm Modal -->
+  <div class="modal hidden" id="cyber-confirm-modal" style="z-index: 10000; display: flex; align-items: center; justify-content: center; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(3, 7, 18, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
+    <div class="case-study-modal-wrap" style="max-width: 420px; padding: 1.5rem; border: 1px solid var(--cyber-red); box-shadow: var(--glow-red); background: var(--bg-glass); border-radius: 6px;">
+      <div class="modal-header" style="border-bottom: 1px solid rgba(239, 68, 68, 0.2); padding-bottom: 0.75rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem;">
+        <i data-lucide="shield-alert" class="text-cyber-red animate-pulse" style="width: 24px; height: 24px;"></i>
+        <h3 style="color: var(--cyber-red); font-family: var(--font-mono); font-size: 1rem; font-weight: 800; letter-spacing: 1px; margin: 0; text-transform: uppercase;">Security Confirmation</h3>
+      </div>
+      <div class="modal-body" style="margin-bottom: 1.5rem;">
+        <p id="cyber-confirm-message" style="color: var(--text-secondary); font-family: var(--font-mono); font-size: 0.85rem; line-height: 1.5; margin: 0;"></p>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button id="cyber-confirm-btn-cancel" class="header-action-btn" style="border-color: var(--border-color); color: var(--text-muted); background: rgba(255, 255, 255, 0.02); font-size: 0.7rem; padding: 0.4rem 0.85rem; cursor: pointer; letter-spacing: 0.5px; border-radius: 4px;">
+          CANCEL
+        </button>
+        <button id="cyber-confirm-btn-confirm" class="header-action-btn" style="border-color: var(--cyber-red); color: #fff; background: rgba(239, 68, 68, 0.2); font-size: 0.7rem; padding: 0.4rem 0.85rem; cursor: pointer; box-shadow: 0 0 10px rgba(239, 68, 68, 0.15); letter-spacing: 0.5px; border-radius: 4px;" onmouseover="this.style.background='rgba(239,68,68,0.35)'; this.style.boxShadow='0 0 12px rgba(239,68,68,0.4)';" onmouseout="this.style.background='rgba(239,68,68,0.2)'; this.style.boxShadow='0 0 10px rgba(239,68,68,0.15)';">
+          PROCEED
+        </button>
       </div>
     </div>
   </div>

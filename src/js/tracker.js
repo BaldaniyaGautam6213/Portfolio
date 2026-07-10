@@ -18,6 +18,12 @@
   }
   window.supabaseClient = client;
 
+  // Track locally deleted rows to ensure instant UI updates and prevent refetch collisions
+  const deletedInquiryIds = new Set();
+  const deletedAuditIds = new Set();
+  const deletedInquiryTimestamps = new Set();
+  const deletedAuditTimestamps = new Set();
+
   // Expose triggers
   window.initTracker = function() {
     // 1. Bind UI listeners immediately and synchronously so they are active instantly
@@ -439,7 +445,8 @@
     deleteBtns.forEach(btn => {
       btn.addEventListener('click', async () => {
         const username = btn.getAttribute('data-username');
-        if (confirm(`Are you sure you want to revoke admin credentials for: ${username}?`)) {
+        const confirmed = await window.showCyberConfirm(`Are you sure you want to revoke admin credentials for: ${username}?`);
+        if (confirmed) {
           if (client) {
             try {
               const adminUser = sessionStorage.getItem('gautam_sec_admin_user');
@@ -482,7 +489,15 @@
 
     if (!tableBody) return;
 
-    const logs = await getAuditLogs();
+    let logs = await getAuditLogs();
+    
+    // Filter out locally deleted logs instantly
+    logs = logs.filter(log => {
+      if (log.id && deletedAuditIds.has(log.id)) return false;
+      if (log.timestamp && deletedAuditTimestamps.has(log.timestamp)) return false;
+      return true;
+    });
+
     tableBody.innerHTML = "";
 
     let desktopCount = 0;
@@ -521,9 +536,9 @@
           ${isMob ? `<br><span class="badge badge-phone-number"><i data-lucide="phone-off" style="width: 8px; height: 8px; display: inline-block; vertical-align: middle; margin-right: 0.15rem;"></i> ${log.phoneNumber}</span>` : ""}
         </td>
         <td>${fetchableHtml}</td>
-        <td>
-          <button class="header-action-btn delete-audit-btn" style="border-color: rgba(239, 68, 68, 0.4); color: var(--cyber-red); background: rgba(239, 68, 68, 0.05); padding: 0.25rem 0.5rem; font-size: 0.65rem; display: flex; align-items: center; justify-content: center; width: auto; min-width: unset; cursor: pointer;">
-            <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i>
+        <td style="text-align: center; width: 80px;">
+          <button class="delete-audit-btn" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 6px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.25)'; this.style.borderColor='#ef4444'; this.style.boxShadow='0 0 8px rgba(239,68,68,0.5)';" onmouseout="this.style.background='rgba(239,68,68,0.1)'; this.style.borderColor='rgba(239,68,68,0.4)'; this.style.boxShadow='none';">
+            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
           </button>
         </td>
       `;
@@ -589,6 +604,13 @@
       const data = localStorage.getItem(STORAGE_KEY_INQUIRIES);
       inquiries = data ? JSON.parse(data) : [];
     }
+
+    // Filter out locally deleted inquiries instantly
+    inquiries = inquiries.filter(inq => {
+      if (inq.id && deletedInquiryIds.has(inq.id)) return false;
+      if (inq.timestamp && deletedInquiryTimestamps.has(inq.timestamp)) return false;
+      return true;
+    });
     
     tableBody.innerHTML = "";
     
@@ -624,9 +646,9 @@
           <br><small style="color: var(--text-muted); font-size: 0.65rem; font-family: var(--font-mono);">${escapeHTML(inq.os || '')} | Net: ${escapeHTML(inq.connection_type || 'Unknown')}</small>
         </td>
         <td style="white-space: normal; line-height: 1.4; min-width: 200px; color: var(--text-secondary);">${escapeHTML(inq.message)}</td>
-        <td>
-          <button class="header-action-btn delete-inq-btn" style="border-color: rgba(239, 68, 68, 0.4); color: var(--cyber-red); background: rgba(239, 68, 68, 0.05); padding: 0.25rem 0.5rem; font-size: 0.65rem; display: flex; align-items: center; justify-content: center; width: auto; min-width: unset; cursor: pointer;">
-            <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i>
+        <td style="text-align: center; width: 80px;">
+          <button class="delete-inq-btn" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.4); color: #ef4444; padding: 6px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(239,68,68,0.25)'; this.style.borderColor='#ef4444'; this.style.boxShadow='0 0 8px rgba(239,68,68,0.5)';" onmouseout="this.style.background='rgba(239,68,68,0.1)'; this.style.borderColor='rgba(239,68,68,0.4)'; this.style.boxShadow='none';">
+            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
           </button>
         </td>
       `;
@@ -640,6 +662,10 @@
 
       tableBody.appendChild(tr);
     });
+
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
   };
 
   function escapeHTML(str) {
@@ -818,7 +844,8 @@
     const clearBtn = document.getElementById('clear-audits-btn');
     if (clearBtn) {
       clearBtn.addEventListener('click', async () => {
-        if (confirm("WARNING: Are you sure you want to clear recruiter visitor tracking logs? This deletes all persisted audit tables.")) {
+        const confirmed = await window.showCyberConfirm("WARNING: Are you sure you want to clear recruiter visitor tracking logs? This deletes all persisted audit tables.");
+        if (confirmed) {
           if (client) {
             try {
               const adminUser = sessionStorage.getItem('gautam_sec_admin_user');
@@ -847,7 +874,8 @@
     const clearInquiriesBtn = document.getElementById('clear-inquiries-btn');
     if (clearInquiriesBtn) {
       clearInquiriesBtn.addEventListener('click', async () => {
-        if (confirm("Are you sure you want to wipe all logged recruiter inquiries? This will delete them from the database too.")) {
+        const confirmed = await window.showCyberConfirm("Are you sure you want to wipe all logged recruiter inquiries? This will delete them from the database too.");
+        if (confirmed) {
           if (client) {
             try {
               // Delete all records from Supabase
@@ -868,9 +896,19 @@
   }
 
   window.deleteInquiryRow = async function(id, timestamp) {
-    if (!confirm("Are you sure you want to delete this recruiter inquiry?")) return;
+    const confirmed = await window.showCyberConfirm("Are you sure you want to delete this recruiter inquiry?");
+    if (!confirmed) return;
     
-    // 1. Delete from Supabase
+    // Add to local deleted tracking sets immediately for instant UI response
+    if (id) deletedInquiryIds.add(id);
+    if (timestamp) deletedInquiryTimestamps.add(timestamp);
+    
+    // Trigger table re-render instantly
+    if (window.renderInquiriesTable) {
+      window.renderInquiriesTable();
+    }
+    
+    // Delete from Supabase in background
     if (client) {
       try {
         let res;
@@ -893,7 +931,7 @@
       }
     }
     
-    // 2. Delete from local storage
+    // Delete from local storage
     const localData = localStorage.getItem(STORAGE_KEY_INQUIRIES);
     if (localData) {
       let inquiries = JSON.parse(localData);
@@ -905,17 +943,22 @@
     }
     
     window.showNotification("Inquiry deleted successfully", "success");
-    
-    // 3. Refresh table
-    if (window.renderInquiriesTable) {
-      window.renderInquiriesTable();
-    }
   };
 
   window.deleteAuditRow = async function(id, timestamp) {
-    if (!confirm("Are you sure you want to delete this visitor log?")) return;
+    const confirmed = await window.showCyberConfirm("Are you sure you want to delete this visitor log?");
+    if (!confirmed) return;
     
-    // 1. Delete from Supabase
+    // Add to local deleted tracking sets immediately for instant UI response
+    if (id) deletedAuditIds.add(id);
+    if (timestamp) deletedAuditTimestamps.add(timestamp);
+    
+    // Trigger table re-render instantly
+    if (window.renderAuditsTable) {
+      window.renderAuditsTable();
+    }
+    
+    // Delete from Supabase in background
     if (client) {
       try {
         let res;
@@ -932,7 +975,7 @@
       }
     }
     
-    // 2. Delete from local storage
+    // Delete from local storage
     const localData = localStorage.getItem(STORAGE_KEY_AUDITS);
     if (localData) {
       let logs = JSON.parse(localData);
@@ -944,11 +987,6 @@
     }
     
     window.showNotification("Visitor log deleted successfully", "success");
-    
-    // 3. Refresh table
-    if (window.renderAuditsTable) {
-      window.renderAuditsTable();
-    }
   };
 
 })();

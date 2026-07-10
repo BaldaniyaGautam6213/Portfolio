@@ -68,6 +68,46 @@
   // Launch boot sequence
   window.addEventListener('DOMContentLoaded', () => {
     window.navigateTo = navigateTo; // Expose globally on load
+    
+    window.showCyberConfirm = function(message) {
+      return new Promise((resolve) => {
+        const modal = document.getElementById('cyber-confirm-modal');
+        const msgEl = document.getElementById('cyber-confirm-message');
+        const btnConfirm = document.getElementById('cyber-confirm-btn-confirm');
+        const btnCancel = document.getElementById('cyber-confirm-btn-cancel');
+        
+        if (!modal || !msgEl || !btnConfirm || !btnCancel) {
+          resolve(confirm(message));
+          return;
+        }
+        
+        msgEl.innerText = message;
+        modal.classList.remove('hidden');
+        
+        if (typeof lucide !== 'undefined') {
+          lucide.createIcons();
+        }
+        
+        const cleanUp = (value) => {
+          modal.classList.add('hidden');
+          btnConfirm.removeEventListener('click', onConfirm);
+          btnCancel.removeEventListener('click', onCancel);
+          resolve(value);
+        };
+        
+        function onConfirm() {
+          cleanUp(true);
+        }
+        
+        function onCancel() {
+          cleanUp(false);
+        }
+        
+        btnConfirm.addEventListener('click', onConfirm);
+        btnCancel.addEventListener('click', onCancel);
+      });
+    };
+
     runBootSequence();
     initGlobalListeners();
     initSystemTelemetry();
