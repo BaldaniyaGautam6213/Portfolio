@@ -493,7 +493,7 @@
     
     // Filter out locally deleted logs instantly
     logs = logs.filter(log => {
-      if (log.id && deletedAuditIds.has(log.id)) return false;
+      if (log.id && deletedAuditIds.has(String(log.id))) return false;
       if (log.timestamp && deletedAuditTimestamps.has(log.timestamp)) return false;
       return true;
     });
@@ -607,7 +607,7 @@
 
     // Filter out locally deleted inquiries instantly
     inquiries = inquiries.filter(inq => {
-      if (inq.id && deletedInquiryIds.has(inq.id)) return false;
+      if (inq.id && deletedInquiryIds.has(String(inq.id))) return false;
       if (inq.timestamp && deletedInquiryTimestamps.has(inq.timestamp)) return false;
       return true;
     });
@@ -911,7 +911,7 @@
     if (!confirmed) return;
     
     // Add to local deleted tracking sets immediately for instant UI response
-    if (id) deletedInquiryIds.add(id);
+    if (id) deletedInquiryIds.add(String(id));
     if (timestamp) deletedInquiryTimestamps.add(timestamp);
     
     // Trigger table re-render instantly
@@ -929,7 +929,7 @@
         const { data: success, error } = await client.rpc('delete_single_inquiry', {
           p_admin_user: adminUser,
           p_admin_pass: adminPass,
-          p_id: id || null,
+          p_id: id ? String(id) : null,
           p_timestamp: timestamp || ''
         });
         
@@ -973,7 +973,7 @@
     if (!confirmed) return;
     
     // Add to local deleted tracking sets immediately for instant UI response
-    if (id) deletedAuditIds.add(id);
+    if (id) deletedAuditIds.add(String(id));
     if (timestamp) deletedAuditTimestamps.add(timestamp);
     
     // Trigger table re-render instantly
@@ -991,7 +991,7 @@
         const { data: success, error } = await client.rpc('delete_single_audit', {
           p_admin_user: adminUser,
           p_admin_pass: adminPass,
-          p_id: id || null,
+          p_id: id ? String(id) : null,
           p_timestamp: timestamp || ''
         });
         
