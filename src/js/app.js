@@ -664,6 +664,11 @@
     const submitIcon = document.getElementById('submit-icon');
     const submitText = submitBtn.querySelector('span');
 
+    const name = document.getElementById('contact-name').value;
+    const email = document.getElementById('contact-email').value;
+    const subject = document.getElementById('contact-subject').value;
+    const message = document.getElementById('contact-message').value;
+
     submitBtn.disabled = true;
     submitText.innerText = "GENERATING SIGNATURE...";
     submitIcon.className = "lucide-loader animate-pulse";
@@ -686,7 +691,51 @@
         lucide.createIcons();
         
         playBeepTone(980, 0.15, 0.1);
-        showNotification("Security handshake complete. Inquiry dispatched successfully.", "success");
+
+        // 1. Log locally to local storage
+        const STORAGE_KEY_INQUIRIES = "gautam_sec_recruiter_inquiries";
+        const localData = localStorage.getItem(STORAGE_KEY_INQUIRIES);
+        const inquiries = localData ? JSON.parse(localData) : [];
+        inquiries.unshift({
+          timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }) + '.' + String(new Date().getMilliseconds()).padStart(3, '0'),
+          name: name,
+          email: email,
+          subject: subject,
+          message: message
+        });
+        localStorage.setItem(STORAGE_KEY_INQUIRIES, JSON.stringify(inquiries));
+        
+        // Render inquiries table in admin portal instantly
+        if (window.renderInquiriesTable) {
+          window.renderInquiriesTable();
+        }
+
+        // 2. Dispatch via FormSubmit AJAX endpoint to gautam6213@gmail.com
+        fetch("https://formsubmit.co/ajax/gautam6213@gmail.com", {
+          method: "POST",
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            name: name,
+            email: email,
+            message: message,
+            _subject: `[URGENT - HIGH PRIORITY] Portfolio Inquiry: ${subject}`,
+            _priority: "high"
+          })
+        })
+        .then(response => {
+          if (response.ok) {
+            showNotification("Security handshake complete. Inquiry dispatched directly to Gautam.", "success");
+          } else {
+            showNotification("Inquiry logged locally, but external dispatch returned status error.", "warn");
+          }
+        })
+        .catch(err => {
+          console.error("FormSubmit send error:", err);
+          showNotification("Inquiry logged locally, but network dispatch failed.", "warn");
+        });
         
         setTimeout(() => {
           // Reset
@@ -1209,57 +1258,11 @@
     const qrContainer = document.getElementById('qr-container');
     if (!qrContainer) return;
     
-    // Inject a clean, premium mock SVG QR Code with security styling
+    // Inject a real scannable QR Code matching the theme
     qrContainer.innerHTML = `
-      <svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
-        <!-- Background -->
-        <rect width="120" height="120" fill="transparent"/>
-        
-        <!-- QR Markers (top-left, top-right, bottom-left) -->
-        <rect x="10" y="10" width="30" height="30" fill="none" stroke="var(--cyber-green)" stroke-width="4"/>
-        <rect x="18" y="18" width="14" height="14" fill="var(--cyber-green)"/>
-        
-        <rect x="80" y="10" width="30" height="30" fill="none" stroke="var(--cyber-green)" stroke-width="4"/>
-        <rect x="88" y="18" width="14" height="14" fill="var(--cyber-green)"/>
-        
-        <rect x="10" y="80" width="30" height="30" fill="none" stroke="var(--cyber-green)" stroke-width="4"/>
-        <rect x="18" y="88" width="14" height="14" fill="var(--cyber-green)"/>
-
-        <!-- Small alignment marker bottom-right -->
-        <rect x="85" y="85" width="15" height="15" fill="none" stroke="var(--cyber-green)" stroke-width="2"/>
-        <rect x="90" y="90" width="5" height="5" fill="var(--cyber-green)"/>
-        
-        <!-- Random QR code dots -->
-        <g fill="var(--text-secondary)" opacity="0.85">
-          <!-- Column 1 -->
-          <rect x="15" y="45" width="5" height="5"/>
-          <rect x="25" y="50" width="10" height="5"/>
-          <rect x="20" y="60" width="5" height="10"/>
-          
-          <!-- Column 2 -->
-          <rect x="45" y="15" width="5" height="5"/>
-          <rect x="55" y="20" width="5" height="15"/>
-          <rect x="65" y="10" width="10" height="5"/>
-          
-          <!-- Middle Block -->
-          <rect x="45" y="45" width="10" height="10" fill="var(--cyber-purple)"/>
-          <rect x="60" y="45" width="5" height="5"/>
-          <rect x="50" y="60" width="15" height="5"/>
-          <rect x="45" y="70" width="5" height="10"/>
-          
-          <!-- Right side -->
-          <rect x="80" y="45" width="5" height="15"/>
-          <rect x="95" y="55" width="10" height="5"/>
-          <rect x="90" y="65" width="5" height="5"/>
-          <rect x="80" y="75" width="10" height="5"/>
-          
-          <!-- Bottom area -->
-          <rect x="45" y="85" width="5" height="5"/>
-          <rect x="45" y="95" width="15" height="5"/>
-          <rect x="65" y="90" width="5" height="15"/>
-          <rect x="55" y="105" width="10" height="5"/>
-        </g>
-      </svg>
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&color=00ffcc&bgcolor=030712&qzone=1&data=https://gautamportfolio-taupe.vercel.app/" 
+           alt="Gautam Portfolio QR Link" 
+           style="width: 120px; height: 120px; border: 1.5px solid var(--border-color-glow); border-radius: 4px; box-shadow: var(--glow-green);" />
     `;
   }
 })();

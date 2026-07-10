@@ -3255,6 +3255,16 @@ input, textarea, select {
     height: 36px;
   }
   
+  #view-hero {
+    justify-content: flex-start;
+    padding-top: 3rem;
+  }
+  .resume-meta-info {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.5rem;
+  }
+  
   /* Hero Section Mobile Styling */
   .hero-name {
     font-size: 2rem;
@@ -3404,6 +3414,8 @@ input, textarea, select {
   font-weight: 800;
   color: var(--text-primary);
   letter-spacing: 0.5px;
+  word-break: break-all;
+  white-space: normal;
 }
 
 .resume-meta-txt p {
@@ -3411,6 +3423,8 @@ input, textarea, select {
   color: var(--text-muted);
   font-family: var(--font-mono);
   margin-top: 0.1rem;
+  word-break: break-word;
+  white-space: normal;
 }
 
 .resume-banner-buttons {

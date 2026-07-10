@@ -996,6 +996,33 @@
             </div>
           </div>
 
+          <!-- Received Recruiter Inquiries -->
+          <div class="dashboard-panel inquiries-table-panel" style="margin-bottom: 2rem;">
+            <div class="panel-header">
+              <div class="panel-title"><i data-lucide="mail"></i> RECEIVED RECRUITER INQUIRIES</div>
+              <button class="header-action-btn" id="clear-inquiries-btn" style="border-color: rgba(239, 68, 68, 0.4); color: var(--cyber-red); background: rgba(239, 68, 68, 0.05);">
+                <i data-lucide="trash-2"></i>
+                <span>WIPE INQUIRIES</span>
+              </button>
+            </div>
+            <div class="panel-body audits-table-container">
+              <table class="audits-data-table">
+                <thead>
+                  <tr>
+                    <th>TIMESTAMP</th>
+                    <th>SENDER IDENTITY</th>
+                    <th>RETURN ADDRESS</th>
+                    <th>SUBJECT</th>
+                    <th>MESSAGE BODY</th>
+                  </tr>
+                </thead>
+                <tbody id="inquiries-table-body">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <!-- Recorded Recruiter telemetry logs -->
           <div class="dashboard-panel audits-table-panel">
             <div class="panel-header">

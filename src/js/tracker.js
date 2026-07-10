@@ -6,6 +6,7 @@
   const STORAGE_KEY_AUDITS = "gautam_sec_visitor_audits";
   const STORAGE_KEY_VISIT_COUNT = "gautam_sec_recruiter_visits";
   const STORAGE_KEY_ADMINS = "gautam_sec_admin_credentials";
+  const STORAGE_KEY_INQUIRIES = "gautam_sec_recruiter_inquiries";
 
   // Supabase Configuration
   // NOTE: Paste your Supabase project credentials here.
@@ -504,11 +505,53 @@
     // Update global dashboard counter
     await updateDashboardCounter();
     
+    // Render recruiter inquiries too
+    if (window.renderInquiriesTable) {
+      window.renderInquiriesTable();
+    }
+    
     // Re-create icons for table content
     if (typeof lucide !== 'undefined') {
       lucide.createIcons();
     }
   };
+
+  /**
+   * Renders the administrative enquiries received from recruiters
+   */
+  window.renderInquiriesTable = function() {
+    const tableBody = document.getElementById('inquiries-table-body');
+    if (!tableBody) return;
+    
+    const data = localStorage.getItem(STORAGE_KEY_INQUIRIES);
+    const inquiries = data ? JSON.parse(data) : [];
+    tableBody.innerHTML = "";
+    
+    if (inquiries.length === 0) {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="5" style="text-align: center; color: var(--text-muted); font-family: var(--font-mono);">NO RECRUITER INQUIRIES REGISTERED IN LOCAL VAULT</td>
+        </tr>
+      `;
+      return;
+    }
+    
+    inquiries.forEach(inq => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="white-space: nowrap; color: var(--text-primary); font-weight: 700;">[${inq.timestamp}]</td>
+        <td class="text-cyber-green" style="font-weight: 700;">${escapeHTML(inq.name)}</td>
+        <td><a href="mailto:${inq.email}" class="text-cyber-blue link">${escapeHTML(inq.email)}</a></td>
+        <td style="color: var(--text-primary); font-weight: bold;">${escapeHTML(inq.subject)}</td>
+        <td style="white-space: normal; line-height: 1.4; min-width: 250px; color: var(--text-secondary);">${escapeHTML(inq.message)}</td>
+      `;
+      tableBody.appendChild(tr);
+    });
+  };
+
+  function escapeHTML(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
 
   /**
    * Verifies if the user is authenticated in the current session
@@ -703,6 +746,19 @@
           localStorage.setItem(STORAGE_KEY_VISIT_COUNT, "0");
           window.showNotification("Visitor audit logs reset successfully.", "info");
           await window.renderAuditsTable();
+        }
+      });
+    }
+
+    const clearInquiriesBtn = document.getElementById('clear-inquiries-btn');
+    if (clearInquiriesBtn) {
+      clearInquiriesBtn.addEventListener('click', () => {
+        if (confirm("Are you sure you want to wipe all logged recruiter inquiries from local vault?")) {
+          localStorage.removeItem(STORAGE_KEY_INQUIRIES);
+          window.showNotification("Recruiter inquiries reset successfully.", "info");
+          if (window.renderInquiriesTable) {
+            window.renderInquiriesTable();
+          }
         }
       });
     }
