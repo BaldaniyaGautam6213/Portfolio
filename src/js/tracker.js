@@ -219,6 +219,8 @@
         rawTimestamp: Date.now()
       };
 
+      window.currentSessionTelemetry = newAuditEntry;
+
       if (client) {
         // Log telemetry online directly to Supabase
         const { error } = await client.from('visitor_audits').insert([ newAuditEntry ]);
@@ -555,7 +557,7 @@
     if (inquiries.length === 0) {
       tableBody.innerHTML = `
         <tr>
-          <td colspan="5" style="text-align: center; color: var(--text-muted); font-family: var(--font-mono);">NO RECRUITER INQUIRIES REGISTERED IN DATABASE</td>
+          <td colspan="7" style="text-align: center; color: var(--text-muted); font-family: var(--font-mono);">NO RECRUITER INQUIRIES REGISTERED IN DATABASE</td>
         </tr>
       `;
       return;
@@ -564,12 +566,26 @@
     inquiries.forEach(inq => {
       const tr = document.createElement('tr');
       const ts = inq.timestamp || inq.created_at || '';
+      
+      const dev = inq.device || 'Unknown';
+      const isMob = dev === "Mobile Phone" || dev === "Tablet" || dev.toLowerCase().includes("phone") || dev.toLowerCase().includes("ipad");
+      const badgeClass = isMob ? "badge-mobile" : "badge-desktop";
+      const icon = isMob ? "smartphone" : "monitor";
+      
       tr.innerHTML = `
         <td style="white-space: nowrap; color: var(--text-primary); font-weight: 700;">[${ts}]</td>
         <td class="text-cyber-green" style="font-weight: 700;">${escapeHTML(inq.name)}</td>
         <td><a href="mailto:${inq.email}" class="text-cyber-blue link">${escapeHTML(inq.email)}</a></td>
         <td style="color: var(--text-primary); font-weight: bold;">${escapeHTML(inq.subject || 'Inquiry')}</td>
-        <td style="white-space: normal; line-height: 1.4; min-width: 250px; color: var(--text-secondary);">${escapeHTML(inq.message)}</td>
+        <td class="text-cyber-green">${escapeHTML(inq.ip || 'Unknown')}</td>
+        <td>
+          <span class="badge ${badgeClass}" style="font-size: 0.65rem;">
+            <i data-lucide="${icon}" style="width: 10px; height: 10px; display: inline-block; vertical-align: middle; margin-right: 0.25rem;"></i>
+            ${escapeHTML(dev)}
+          </span>
+          ${inq.os ? `<br><small style="color: var(--text-muted); font-size: 0.65rem; font-family: var(--font-mono);">${escapeHTML(inq.os)}</small>` : ''}
+        </td>
+        <td style="white-space: normal; line-height: 1.4; min-width: 200px; color: var(--text-secondary);">${escapeHTML(inq.message)}</td>
       `;
       tableBody.appendChild(tr);
     });

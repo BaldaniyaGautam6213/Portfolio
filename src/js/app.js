@@ -696,12 +696,17 @@
         const STORAGE_KEY_INQUIRIES = "gautam_sec_recruiter_inquiries";
         const localData = localStorage.getItem(STORAGE_KEY_INQUIRIES);
         const inquiries = localData ? JSON.parse(localData) : [];
+        const session = window.currentSessionTelemetry || {};
         const newInquiry = {
           timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }) + '.' + String(new Date().getMilliseconds()).padStart(3, '0'),
           name: name,
           email: email,
           subject: subject,
-          message: message
+          message: message,
+          ip: session.ip || 'Unknown',
+          device: session.deviceType || 'Unknown',
+          os: session.os || 'Unknown',
+          spec: session.spec || 'Unknown'
         };
         inquiries.unshift(newInquiry);
         localStorage.setItem(STORAGE_KEY_INQUIRIES, JSON.stringify(inquiries));
