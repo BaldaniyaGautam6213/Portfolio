@@ -592,13 +592,6 @@
           // DB returned successfully (even if empty after wipe) — trust it
           inquiries = data;
           fetchedFromSupabase = true;
-        } else if (error) {
-          // Fallback to table named 'inquiries'
-          const fallbackRes = await client.from('inquiries').select('*').order('timestamp', { ascending: false });
-          if (!fallbackRes.error && fallbackRes.data !== null) {
-            inquiries = fallbackRes.data;
-            fetchedFromSupabase = true;
-          }
         }
       } catch (e) {
         console.error("Error fetching online inquiries from Supabase:", e);
@@ -884,13 +877,11 @@
           deletedInquiryIds.clear();
           deletedInquiryTimestamps.clear();
 
-          // Wipe tables in Supabase using direct delete (requires DELETE RLS policy)
+          // Wipe table in Supabase using direct delete (requires DELETE RLS policy)
           if (client) {
             try {
-              const { error: e1 } = await client.from('recruiter_inquiries').delete().neq('id', -999999);
-              if (e1) console.error("Clear recruiter_inquiries error:", e1);
-              const { error: e2 } = await client.from('inquiries').delete().neq('id', -999999);
-              if (e2) console.error("Clear inquiries error:", e2);
+              const { error } = await client.from('recruiter_inquiries').delete().neq('id', -999999);
+              if (error) console.error("Clear recruiter_inquiries error:", error);
             } catch(e) {
               console.error("Error wiping online inquiries:", e);
             }
@@ -933,15 +924,11 @@
     if (client) {
       try {
         if (id) {
-          const { error: e1 } = await client.from('recruiter_inquiries').delete().eq('id', id);
-          const { error: e2 } = await client.from('inquiries').delete().eq('id', id);
-          if (e1) console.warn("recruiter_inquiries delete error:", e1);
-          if (e2) console.warn("inquiries delete error:", e2);
+          const { error } = await client.from('recruiter_inquiries').delete().eq('id', id);
+          if (error) console.warn("recruiter_inquiries delete error:", error);
         } else if (timestamp) {
-          const { error: e1 } = await client.from('recruiter_inquiries').delete().eq('timestamp', timestamp);
-          const { error: e2 } = await client.from('inquiries').delete().eq('timestamp', timestamp);
-          if (e1) console.warn("recruiter_inquiries delete error:", e1);
-          if (e2) console.warn("inquiries delete error:", e2);
+          const { error } = await client.from('recruiter_inquiries').delete().eq('timestamp', timestamp);
+          if (error) console.warn("recruiter_inquiries delete error:", error);
         }
       } catch (e) {
         console.error("Supabase delete error:", e);
