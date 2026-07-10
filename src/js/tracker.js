@@ -858,15 +858,11 @@
           deletedAuditIds.clear();
           deletedAuditTimestamps.clear();
 
-          // Wipe table in Supabase database
+          // Wipe table in Supabase using direct delete (requires DELETE RLS policy on visitor_audits)
           if (client) {
             try {
-              const adminUser = sessionStorage.getItem('gautam_sec_admin_user');
-              const adminPass = sessionStorage.getItem('gautam_sec_admin_pass');
-              await client.rpc('clear_visitor_audits', {
-                p_admin_user: adminUser,
-                p_admin_pass: adminPass
-              });
+              const { error } = await client.from('visitor_audits').delete().neq('id', -999999);
+              if (error) console.error("Clear visitor_audits error:", error);
             } catch (e) {
               console.error("Clear audits error:", e);
             }
@@ -888,15 +884,13 @@
           deletedInquiryIds.clear();
           deletedInquiryTimestamps.clear();
 
-          // Wipe table in Supabase database
+          // Wipe tables in Supabase using direct delete (requires DELETE RLS policy)
           if (client) {
             try {
-              const adminUser = sessionStorage.getItem('gautam_sec_admin_user');
-              const adminPass = sessionStorage.getItem('gautam_sec_admin_pass');
-              await client.rpc('clear_recruiter_inquiries', {
-                p_admin_user: adminUser,
-                p_admin_pass: adminPass
-              });
+              const { error: e1 } = await client.from('recruiter_inquiries').delete().neq('id', -999999);
+              if (e1) console.error("Clear recruiter_inquiries error:", e1);
+              const { error: e2 } = await client.from('inquiries').delete().neq('id', -999999);
+              if (e2) console.error("Clear inquiries error:", e2);
             } catch(e) {
               console.error("Error wiping online inquiries:", e);
             }
@@ -919,47 +913,7 @@
     if (id) deletedInquiryIds.add(String(id));
     if (timestamp) deletedInquiryTimestamps.add(timestamp);
     
-    // Trigger table re-render instantly
-    if (window.renderInquiriesTable) {
-      window.renderInquiriesTable();
-    }
-    
-    // Delete from Supabase in background
-    if (client) {
-      try {
-        const adminUser = sessionStorage.getItem('gautam_sec_admin_user');
-        const adminPass = sessionStorage.getItem('gautam_sec_admin_pass');
-        
-        // Try calling the secure RPC first
-        const { data: success, error } = await client.rpc('delete_single_inquiry', {
-          p_admin_user: adminUser,
-          p_admin_pass: adminPass,
-          p_id: id ? String(id) : null,
-          p_timestamp: timestamp || ''
-        });
-        
-        // If RPC does not exist or fails, fall back to direct table deletion
-        if (error || !success) {
-          console.warn("RPC delete_single_inquiry failed/missing, falling back to direct table delete...", error);
-          let res;
-          if (id) {
-            res = await client.from('recruiter_inquiries').delete().eq('id', id);
-            if (res.error) {
-              res = await client.from('inquiries').delete().eq('id', id);
-            }
-          } else {
-            res = await client.from('recruiter_inquiries').delete().eq('timestamp', timestamp);
-            if (res.error) {
-              res = await client.from('inquiries').delete().eq('timestamp', timestamp);
-            }
-          }
-        }
-      } catch (e) {
-        console.error("Supabase delete error:", e);
-      }
-    }
-    
-    // Delete from local storage
+    // Remove from localStorage immediately
     const localData = localStorage.getItem(STORAGE_KEY_INQUIRIES);
     if (localData) {
       let inquiries = JSON.parse(localData);
@@ -968,6 +922,30 @@
         return inq.timestamp !== timestamp;
       });
       localStorage.setItem(STORAGE_KEY_INQUIRIES, JSON.stringify(inquiries));
+    }
+
+    // Trigger table re-render instantly
+    if (window.renderInquiriesTable) {
+      window.renderInquiriesTable();
+    }
+    
+    // Delete from Supabase using direct table delete (requires DELETE RLS policy)
+    if (client) {
+      try {
+        if (id) {
+          const { error: e1 } = await client.from('recruiter_inquiries').delete().eq('id', id);
+          const { error: e2 } = await client.from('inquiries').delete().eq('id', id);
+          if (e1) console.warn("recruiter_inquiries delete error:", e1);
+          if (e2) console.warn("inquiries delete error:", e2);
+        } else if (timestamp) {
+          const { error: e1 } = await client.from('recruiter_inquiries').delete().eq('timestamp', timestamp);
+          const { error: e2 } = await client.from('inquiries').delete().eq('timestamp', timestamp);
+          if (e1) console.warn("recruiter_inquiries delete error:", e1);
+          if (e2) console.warn("inquiries delete error:", e2);
+        }
+      } catch (e) {
+        console.error("Supabase delete error:", e);
+      }
     }
     
     window.showNotification("Inquiry deleted successfully", "success");
@@ -980,41 +958,8 @@
     // Add to local deleted tracking sets immediately for instant UI response
     if (id) deletedAuditIds.add(String(id));
     if (timestamp) deletedAuditTimestamps.add(timestamp);
-    
-    // Trigger table re-render instantly
-    if (window.renderAuditsTable) {
-      window.renderAuditsTable();
-    }
-    
-    // Delete from Supabase in background
-    if (client) {
-      try {
-        const adminUser = sessionStorage.getItem('gautam_sec_admin_user');
-        const adminPass = sessionStorage.getItem('gautam_sec_admin_pass');
-        
-        // Try calling secure RPC first
-        const { data: success, error } = await client.rpc('delete_single_audit', {
-          p_admin_user: adminUser,
-          p_admin_pass: adminPass,
-          p_id: id ? String(id) : null,
-          p_timestamp: timestamp || ''
-        });
-        
-        if (error || !success) {
-          console.warn("RPC delete_single_audit failed/missing, falling back to direct table delete...", error);
-          let res;
-          if (id) {
-            res = await client.from('visitor_audits').delete().eq('id', id);
-          } else {
-            res = await client.from('visitor_audits').delete().eq('timestamp', timestamp);
-          }
-        }
-      } catch (e) {
-        console.error("Supabase delete error:", e);
-      }
-    }
-    
-    // Delete from local storage
+
+    // Remove from localStorage immediately
     const localData = localStorage.getItem(STORAGE_KEY_AUDITS);
     if (localData) {
       let logs = JSON.parse(localData);
@@ -1023,6 +968,26 @@
         return log.timestamp !== timestamp;
       });
       localStorage.setItem(STORAGE_KEY_AUDITS, JSON.stringify(logs));
+    }
+
+    // Trigger table re-render instantly
+    if (window.renderAuditsTable) {
+      window.renderAuditsTable();
+    }
+    
+    // Delete from Supabase using direct table delete (requires DELETE RLS policy)
+    if (client) {
+      try {
+        if (id) {
+          const { error } = await client.from('visitor_audits').delete().eq('id', id);
+          if (error) console.warn("visitor_audits delete error:", error);
+        } else if (timestamp) {
+          const { error } = await client.from('visitor_audits').delete().eq('timestamp', timestamp);
+          if (error) console.warn("visitor_audits delete error:", error);
+        }
+      } catch (e) {
+        console.error("Supabase delete error:", e);
+      }
     }
     
     window.showNotification("Visitor log deleted successfully", "success");
