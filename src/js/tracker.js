@@ -338,7 +338,8 @@
       try {
         // Try direct select first (returns new device_model and connection_type columns)
         let { data, error } = await client.from('visitor_audits').select('*').order('rawTimestamp', { ascending: false });
-        if (!error && data) return data;
+        // Return database result even if empty array — don't fall back to local if DB returned successfully
+        if (!error && data !== null) return data;
 
         // Fallback to RPC method if direct select fails
         const adminUser = sessionStorage.getItem('gautam_sec_admin_user');
@@ -348,13 +349,14 @@
             p_admin_user: adminUser,
             p_admin_pass: adminPass
           });
-          if (!rpcRes.error && rpcRes.data) return rpcRes.data;
+          if (!rpcRes.error && rpcRes.data !== null) return rpcRes.data;
           console.error("Error fetching online logs via RPC:", rpcRes.error);
         }
       } catch (e) {
         console.error("Error fetching online logs:", e);
       }
     }
+    // Only fall back to local if Supabase is not connected at all
     return getAuditLogsLocal();
   }
 
@@ -580,27 +582,31 @@
     if (!tableBody) return;
     
     let inquiries = [];
-    
+    let fetchedFromSupabase = false;
+
     // Attempt fetching from Supabase if connected
     if (client) {
       try {
         let { data, error } = await client.from('recruiter_inquiries').select('*').order('timestamp', { ascending: false });
-        if (error) {
+        if (!error && data !== null) {
+          // DB returned successfully (even if empty after wipe) — trust it
+          inquiries = data;
+          fetchedFromSupabase = true;
+        } else if (error) {
           // Fallback to table named 'inquiries'
           const fallbackRes = await client.from('inquiries').select('*').order('timestamp', { ascending: false });
-          if (!fallbackRes.error && fallbackRes.data) {
+          if (!fallbackRes.error && fallbackRes.data !== null) {
             inquiries = fallbackRes.data;
+            fetchedFromSupabase = true;
           }
-        } else if (data) {
-          inquiries = data;
         }
       } catch (e) {
         console.error("Error fetching online inquiries from Supabase:", e);
       }
     }
-    
-    // Fallback to local storage if online results are empty or database is offline
-    if (inquiries.length === 0) {
+
+    // Only fall back to local storage if Supabase is completely offline
+    if (!fetchedFromSupabase) {
       const data = localStorage.getItem(STORAGE_KEY_INQUIRIES);
       inquiries = data ? JSON.parse(data) : [];
     }
@@ -844,27 +850,28 @@
     const clearBtn = document.getElementById('clear-audits-btn');
     if (clearBtn) {
       clearBtn.addEventListener('click', async () => {
-        const confirmed = await window.showCyberConfirm("WARNING: Are you sure you want to clear recruiter visitor tracking logs? This deletes all persisted audit tables.");
+        const confirmed = await window.showCyberConfirm("WARNING: Are you sure you want to clear visitor tracking logs? This deletes all persisted audit records.");
         if (confirmed) {
+          // ALWAYS clear localStorage first so data never comes back from local fallback
+          localStorage.removeItem(STORAGE_KEY_AUDITS);
+          localStorage.setItem(STORAGE_KEY_VISIT_COUNT, "0");
+          deletedAuditIds.clear();
+          deletedAuditTimestamps.clear();
+
+          // Wipe table in Supabase database
           if (client) {
             try {
               const adminUser = sessionStorage.getItem('gautam_sec_admin_user');
               const adminPass = sessionStorage.getItem('gautam_sec_admin_pass');
-              const { data: success, error } = await client.rpc('clear_visitor_audits', {
+              await client.rpc('clear_visitor_audits', {
                 p_admin_user: adminUser,
                 p_admin_pass: adminPass
               });
-              if (success && !error) {
-                window.showNotification("Visitor audit logs reset successfully.", "info");
-                await window.renderAuditsTable();
-                return;
-              }
             } catch (e) {
               console.error("Clear audits error:", e);
             }
           }
-          localStorage.removeItem(STORAGE_KEY_AUDITS);
-          localStorage.setItem(STORAGE_KEY_VISIT_COUNT, "0");
+
           window.showNotification("Visitor audit logs reset successfully.", "info");
           await window.renderAuditsTable();
         }
@@ -876,27 +883,25 @@
       clearInquiriesBtn.addEventListener('click', async () => {
         const confirmed = await window.showCyberConfirm("Are you sure you want to wipe all logged recruiter inquiries? This will delete them from the database too.");
         if (confirmed) {
+          // ALWAYS clear localStorage first so data never comes back from local fallback
+          localStorage.removeItem(STORAGE_KEY_INQUIRIES);
+          deletedInquiryIds.clear();
+          deletedInquiryTimestamps.clear();
+
+          // Wipe table in Supabase database
           if (client) {
             try {
               const adminUser = sessionStorage.getItem('gautam_sec_admin_user');
               const adminPass = sessionStorage.getItem('gautam_sec_admin_pass');
-              
-              // Try calling secure RPC first
-              const { data: success, error } = await client.rpc('clear_recruiter_inquiries', {
+              await client.rpc('clear_recruiter_inquiries', {
                 p_admin_user: adminUser,
                 p_admin_pass: adminPass
               });
-              
-              if (error || !success) {
-                console.warn("RPC clear_recruiter_inquiries failed/missing, falling back to direct delete...", error);
-                await client.from('recruiter_inquiries').delete().neq('name', '');
-                await client.from('inquiries').delete().neq('name', '');
-              }
             } catch(e) {
               console.error("Error wiping online inquiries:", e);
             }
           }
-          localStorage.removeItem(STORAGE_KEY_INQUIRIES);
+
           window.showNotification("Recruiter inquiries reset successfully.", "info");
           if (window.renderInquiriesTable) {
             window.renderInquiriesTable();
