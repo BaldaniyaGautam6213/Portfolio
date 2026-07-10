@@ -878,9 +878,20 @@
         if (confirmed) {
           if (client) {
             try {
-              // Delete all records from Supabase
-              await client.from('recruiter_inquiries').delete().neq('name', '');
-              await client.from('inquiries').delete().neq('name', '');
+              const adminUser = sessionStorage.getItem('gautam_sec_admin_user');
+              const adminPass = sessionStorage.getItem('gautam_sec_admin_pass');
+              
+              // Try calling secure RPC first
+              const { data: success, error } = await client.rpc('clear_recruiter_inquiries', {
+                p_admin_user: adminUser,
+                p_admin_pass: adminPass
+              });
+              
+              if (error || !success) {
+                console.warn("RPC clear_recruiter_inquiries failed/missing, falling back to direct delete...", error);
+                await client.from('recruiter_inquiries').delete().neq('name', '');
+                await client.from('inquiries').delete().neq('name', '');
+              }
             } catch(e) {
               console.error("Error wiping online inquiries:", e);
             }
@@ -911,20 +922,32 @@
     // Delete from Supabase in background
     if (client) {
       try {
-        let res;
-        if (id) {
-          res = await client.from('recruiter_inquiries').delete().eq('id', id);
-          if (res.error) {
-            res = await client.from('inquiries').delete().eq('id', id);
+        const adminUser = sessionStorage.getItem('gautam_sec_admin_user');
+        const adminPass = sessionStorage.getItem('gautam_sec_admin_pass');
+        
+        // Try calling the secure RPC first
+        const { data: success, error } = await client.rpc('delete_single_inquiry', {
+          p_admin_user: adminUser,
+          p_admin_pass: adminPass,
+          p_id: id || null,
+          p_timestamp: timestamp || ''
+        });
+        
+        // If RPC does not exist or fails, fall back to direct table deletion
+        if (error || !success) {
+          console.warn("RPC delete_single_inquiry failed/missing, falling back to direct table delete...", error);
+          let res;
+          if (id) {
+            res = await client.from('recruiter_inquiries').delete().eq('id', id);
+            if (res.error) {
+              res = await client.from('inquiries').delete().eq('id', id);
+            }
+          } else {
+            res = await client.from('recruiter_inquiries').delete().eq('timestamp', timestamp);
+            if (res.error) {
+              res = await client.from('inquiries').delete().eq('timestamp', timestamp);
+            }
           }
-        } else {
-          res = await client.from('recruiter_inquiries').delete().eq('timestamp', timestamp);
-          if (res.error) {
-            res = await client.from('inquiries').delete().eq('timestamp', timestamp);
-          }
-        }
-        if (res && res.error) {
-          console.error("Supabase delete failed:", res.error);
         }
       } catch (e) {
         console.error("Supabase delete error:", e);
@@ -961,14 +984,25 @@
     // Delete from Supabase in background
     if (client) {
       try {
-        let res;
-        if (id) {
-          res = await client.from('visitor_audits').delete().eq('id', id);
-        } else {
-          res = await client.from('visitor_audits').delete().eq('timestamp', timestamp);
-        }
-        if (res && res.error) {
-          console.error("Supabase delete failed:", res.error);
+        const adminUser = sessionStorage.getItem('gautam_sec_admin_user');
+        const adminPass = sessionStorage.getItem('gautam_sec_admin_pass');
+        
+        // Try calling secure RPC first
+        const { data: success, error } = await client.rpc('delete_single_audit', {
+          p_admin_user: adminUser,
+          p_admin_pass: adminPass,
+          p_id: id || null,
+          p_timestamp: timestamp || ''
+        });
+        
+        if (error || !success) {
+          console.warn("RPC delete_single_audit failed/missing, falling back to direct table delete...", error);
+          let res;
+          if (id) {
+            res = await client.from('visitor_audits').delete().eq('id', id);
+          } else {
+            res = await client.from('visitor_audits').delete().eq('timestamp', timestamp);
+          }
         }
       } catch (e) {
         console.error("Supabase delete error:", e);
