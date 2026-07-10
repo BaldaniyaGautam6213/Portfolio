@@ -423,6 +423,16 @@
       canvas.width = width * window.devicePixelRatio;
       canvas.height = height * window.devicePixelRatio;
       ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      
+      // Re-calculate node positions for responsiveness
+      centralNode.x = width / 2;
+      centralNode.y = height / 2;
+      const dist = Math.min(width, height) * 0.35;
+      for (let i = 0; i < hosts.length; i++) {
+        const angle = (i * 2 * Math.PI) / hosts.length;
+        hosts[i].x = centralNode.x + Math.cos(angle) * dist;
+        hosts[i].y = centralNode.y + Math.sin(angle) * dist;
+      }
     });
   }
 
