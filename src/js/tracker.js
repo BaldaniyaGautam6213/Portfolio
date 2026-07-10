@@ -521,7 +521,19 @@
           ${isMob ? `<br><span class="badge badge-phone-number"><i data-lucide="phone-off" style="width: 8px; height: 8px; display: inline-block; vertical-align: middle; margin-right: 0.15rem;"></i> ${log.phoneNumber}</span>` : ""}
         </td>
         <td>${fetchableHtml}</td>
+        <td>
+          <button class="header-action-btn delete-audit-btn" style="border-color: rgba(239, 68, 68, 0.4); color: var(--cyber-red); background: rgba(239, 68, 68, 0.05); padding: 0.25rem 0.5rem; font-size: 0.65rem; display: flex; align-items: center; justify-content: center; width: auto; min-width: unset; cursor: pointer;">
+            <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i>
+          </button>
+        </td>
       `;
+
+      const deleteBtn = tr.querySelector('.delete-audit-btn');
+      if (deleteBtn) {
+        deleteBtn.addEventListener('click', () => {
+          window.deleteAuditRow(log.id, log.timestamp);
+        });
+      }
 
       tableBody.appendChild(tr);
     });
@@ -612,7 +624,20 @@
           <br><small style="color: var(--text-muted); font-size: 0.65rem; font-family: var(--font-mono);">${escapeHTML(inq.os || '')} | Net: ${escapeHTML(inq.connection_type || 'Unknown')}</small>
         </td>
         <td style="white-space: normal; line-height: 1.4; min-width: 200px; color: var(--text-secondary);">${escapeHTML(inq.message)}</td>
+        <td>
+          <button class="header-action-btn delete-inq-btn" style="border-color: rgba(239, 68, 68, 0.4); color: var(--cyber-red); background: rgba(239, 68, 68, 0.05); padding: 0.25rem 0.5rem; font-size: 0.65rem; display: flex; align-items: center; justify-content: center; width: auto; min-width: unset; cursor: pointer;">
+            <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i>
+          </button>
+        </td>
       `;
+
+      const deleteBtn = tr.querySelector('.delete-inq-btn');
+      if (deleteBtn) {
+        deleteBtn.addEventListener('click', () => {
+          window.deleteInquiryRow(inq.id, ts);
+        });
+      }
+
       tableBody.appendChild(tr);
     });
   };
@@ -821,8 +846,17 @@
 
     const clearInquiriesBtn = document.getElementById('clear-inquiries-btn');
     if (clearInquiriesBtn) {
-      clearInquiriesBtn.addEventListener('click', () => {
-        if (confirm("Are you sure you want to wipe all logged recruiter inquiries from local vault?")) {
+      clearInquiriesBtn.addEventListener('click', async () => {
+        if (confirm("Are you sure you want to wipe all logged recruiter inquiries? This will delete them from the database too.")) {
+          if (client) {
+            try {
+              // Delete all records from Supabase
+              await client.from('recruiter_inquiries').delete().neq('name', '');
+              await client.from('inquiries').delete().neq('name', '');
+            } catch(e) {
+              console.error("Error wiping online inquiries:", e);
+            }
+          }
           localStorage.removeItem(STORAGE_KEY_INQUIRIES);
           window.showNotification("Recruiter inquiries reset successfully.", "info");
           if (window.renderInquiriesTable) {
@@ -832,5 +866,89 @@
       });
     }
   }
+
+  window.deleteInquiryRow = async function(id, timestamp) {
+    if (!confirm("Are you sure you want to delete this recruiter inquiry?")) return;
+    
+    // 1. Delete from Supabase
+    if (client) {
+      try {
+        let res;
+        if (id) {
+          res = await client.from('recruiter_inquiries').delete().eq('id', id);
+          if (res.error) {
+            res = await client.from('inquiries').delete().eq('id', id);
+          }
+        } else {
+          res = await client.from('recruiter_inquiries').delete().eq('timestamp', timestamp);
+          if (res.error) {
+            res = await client.from('inquiries').delete().eq('timestamp', timestamp);
+          }
+        }
+        if (res && res.error) {
+          console.error("Supabase delete failed:", res.error);
+        }
+      } catch (e) {
+        console.error("Supabase delete error:", e);
+      }
+    }
+    
+    // 2. Delete from local storage
+    const localData = localStorage.getItem(STORAGE_KEY_INQUIRIES);
+    if (localData) {
+      let inquiries = JSON.parse(localData);
+      inquiries = inquiries.filter(inq => {
+        if (id && inq.id) return String(inq.id) !== String(id);
+        return inq.timestamp !== timestamp;
+      });
+      localStorage.setItem(STORAGE_KEY_INQUIRIES, JSON.stringify(inquiries));
+    }
+    
+    window.showNotification("Inquiry deleted successfully", "success");
+    
+    // 3. Refresh table
+    if (window.renderInquiriesTable) {
+      window.renderInquiriesTable();
+    }
+  };
+
+  window.deleteAuditRow = async function(id, timestamp) {
+    if (!confirm("Are you sure you want to delete this visitor log?")) return;
+    
+    // 1. Delete from Supabase
+    if (client) {
+      try {
+        let res;
+        if (id) {
+          res = await client.from('visitor_audits').delete().eq('id', id);
+        } else {
+          res = await client.from('visitor_audits').delete().eq('timestamp', timestamp);
+        }
+        if (res && res.error) {
+          console.error("Supabase delete failed:", res.error);
+        }
+      } catch (e) {
+        console.error("Supabase delete error:", e);
+      }
+    }
+    
+    // 2. Delete from local storage
+    const localData = localStorage.getItem(STORAGE_KEY_AUDITS);
+    if (localData) {
+      let logs = JSON.parse(localData);
+      logs = logs.filter(log => {
+        if (id && log.id) return String(log.id) !== String(id);
+        return log.timestamp !== timestamp;
+      });
+      localStorage.setItem(STORAGE_KEY_AUDITS, JSON.stringify(logs));
+    }
+    
+    window.showNotification("Visitor log deleted successfully", "success");
+    
+    // 3. Refresh table
+    if (window.renderAuditsTable) {
+      window.renderAuditsTable();
+    }
+  };
 
 })();
