@@ -16,6 +16,7 @@
   if (typeof supabase !== 'undefined' && SUPABASE_URL !== "YOUR_SUPABASE_URL" && SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY") {
     client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   }
+  window.supabaseClient = client;
 
   // Expose triggers
   window.initTracker = function() {
@@ -519,18 +520,42 @@
   /**
    * Renders the administrative enquiries received from recruiters
    */
-  window.renderInquiriesTable = function() {
+  window.renderInquiriesTable = async function() {
     const tableBody = document.getElementById('inquiries-table-body');
     if (!tableBody) return;
     
-    const data = localStorage.getItem(STORAGE_KEY_INQUIRIES);
-    const inquiries = data ? JSON.parse(data) : [];
+    let inquiries = [];
+    
+    // Attempt fetching from Supabase if connected
+    if (client) {
+      try {
+        let { data, error } = await client.from('recruiter_inquiries').select('*').order('timestamp', { ascending: false });
+        if (error) {
+          // Fallback to table named 'inquiries'
+          const fallbackRes = await client.from('inquiries').select('*').order('timestamp', { ascending: false });
+          if (!fallbackRes.error && fallbackRes.data) {
+            inquiries = fallbackRes.data;
+          }
+        } else if (data) {
+          inquiries = data;
+        }
+      } catch (e) {
+        console.error("Error fetching online inquiries from Supabase:", e);
+      }
+    }
+    
+    // Fallback to local storage if online results are empty or database is offline
+    if (inquiries.length === 0) {
+      const data = localStorage.getItem(STORAGE_KEY_INQUIRIES);
+      inquiries = data ? JSON.parse(data) : [];
+    }
+    
     tableBody.innerHTML = "";
     
     if (inquiries.length === 0) {
       tableBody.innerHTML = `
         <tr>
-          <td colspan="5" style="text-align: center; color: var(--text-muted); font-family: var(--font-mono);">NO RECRUITER INQUIRIES REGISTERED IN LOCAL VAULT</td>
+          <td colspan="5" style="text-align: center; color: var(--text-muted); font-family: var(--font-mono);">NO RECRUITER INQUIRIES REGISTERED IN DATABASE</td>
         </tr>
       `;
       return;
@@ -538,11 +563,12 @@
     
     inquiries.forEach(inq => {
       const tr = document.createElement('tr');
+      const ts = inq.timestamp || inq.created_at || '';
       tr.innerHTML = `
-        <td style="white-space: nowrap; color: var(--text-primary); font-weight: 700;">[${inq.timestamp}]</td>
+        <td style="white-space: nowrap; color: var(--text-primary); font-weight: 700;">[${ts}]</td>
         <td class="text-cyber-green" style="font-weight: 700;">${escapeHTML(inq.name)}</td>
         <td><a href="mailto:${inq.email}" class="text-cyber-blue link">${escapeHTML(inq.email)}</a></td>
-        <td style="color: var(--text-primary); font-weight: bold;">${escapeHTML(inq.subject)}</td>
+        <td style="color: var(--text-primary); font-weight: bold;">${escapeHTML(inq.subject || 'Inquiry')}</td>
         <td style="white-space: normal; line-height: 1.4; min-width: 250px; color: var(--text-secondary);">${escapeHTML(inq.message)}</td>
       `;
       tableBody.appendChild(tr);
@@ -550,7 +576,8 @@
   };
 
   function escapeHTML(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    if (!str) return "";
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
   /**

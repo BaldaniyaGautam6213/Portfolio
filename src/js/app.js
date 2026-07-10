@@ -696,14 +696,28 @@
         const STORAGE_KEY_INQUIRIES = "gautam_sec_recruiter_inquiries";
         const localData = localStorage.getItem(STORAGE_KEY_INQUIRIES);
         const inquiries = localData ? JSON.parse(localData) : [];
-        inquiries.unshift({
+        const newInquiry = {
           timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }) + '.' + String(new Date().getMilliseconds()).padStart(3, '0'),
           name: name,
           email: email,
           subject: subject,
           message: message
-        });
+        };
+        inquiries.unshift(newInquiry);
         localStorage.setItem(STORAGE_KEY_INQUIRIES, JSON.stringify(inquiries));
+        
+        // Log online to Supabase if connected
+        const client = window.supabaseClient;
+        if (client) {
+          client.from('recruiter_inquiries').insert([newInquiry]).then(({ error }) => {
+            if (error) {
+              console.warn("Supabase insert to recruiter_inquiries failed, trying inquiries table...", error);
+              client.from('inquiries').insert([newInquiry]).then(({ error: err2 }) => {
+                if (err2) console.error("Supabase insert to inquiries failed too:", err2);
+              });
+            }
+          });
+        }
         
         // Render inquiries table in admin portal instantly
         if (window.renderInquiriesTable) {
@@ -722,7 +736,8 @@
             email: email,
             message: message,
             _subject: `[URGENT - HIGH PRIORITY] Portfolio Inquiry: ${subject}`,
-            _priority: "high"
+            _priority: "high",
+            _captcha: "false" // Disable captcha to prevent silent blocks
           })
         })
         .then(response => {
