@@ -3247,8 +3247,14 @@ input, textarea, select {
   }
   .floating-nav-dock {
     width: 90%;
-    bottom: 0.75rem;
+    bottom: 3.25rem;
     gap: 0.25rem;
+  }
+  .header-status {
+    display: none !important;
+  }
+  #launch-soc-btn {
+    display: none !important;
   }
   .dock-btn {
     width: 36px;
@@ -3904,7 +3910,7 @@ input, textarea, select {
     padding: 0 0.5rem;
     gap: 0.15rem;
     height: 48px;
-    bottom: 0.5rem;
+    bottom: 3.25rem;
   }
   .dock-btn {
     width: 32px;

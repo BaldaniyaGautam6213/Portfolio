@@ -330,15 +330,20 @@
   async function getAuditLogs() {
     if (client) {
       try {
+        // Try direct select first (returns new device_model and connection_type columns)
+        let { data, error } = await client.from('visitor_audits').select('*').order('rawTimestamp', { ascending: false });
+        if (!error && data) return data;
+
+        // Fallback to RPC method if direct select fails
         const adminUser = sessionStorage.getItem('gautam_sec_admin_user');
         const adminPass = sessionStorage.getItem('gautam_sec_admin_pass');
         if (adminUser && adminPass) {
-          const { data, error } = await client.rpc('get_visitor_audits', {
+          const rpcRes = await client.rpc('get_visitor_audits', {
             p_admin_user: adminUser,
             p_admin_pass: adminPass
           });
-          if (!error && data) return data;
-          console.error("Error fetching online logs:", error);
+          if (!rpcRes.error && rpcRes.data) return rpcRes.data;
+          console.error("Error fetching online logs via RPC:", rpcRes.error);
         }
       } catch (e) {
         console.error("Error fetching online logs:", e);
