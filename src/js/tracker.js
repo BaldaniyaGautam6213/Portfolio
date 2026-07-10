@@ -207,6 +207,21 @@
         }
       }
 
+      let connectionType = "Unknown Connection";
+      if (navigator.connection) {
+        connectionType = navigator.connection.type || navigator.connection.effectiveType || "Unknown Connection";
+      }
+
+      let deviceModel = phoneOrPcSpec;
+      if (navigator.userAgentData && typeof navigator.userAgentData.getHighEntropyValues === 'function') {
+        try {
+          const uaHints = await navigator.userAgentData.getHighEntropyValues(['model']);
+          if (uaHints.model) {
+            deviceModel = uaHints.model;
+          }
+        } catch (e) {}
+      }
+
       const newAuditEntry = {
         timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }) + '.' + String(new Date().getMilliseconds()).padStart(3, '0'),
         ip: ipAddress,
@@ -216,7 +231,9 @@
         spec: phoneOrPcSpec,
         phoneNumber: simulatedPhoneNumber,
         fetchable: fetchableList,
-        rawTimestamp: Date.now()
+        rawTimestamp: Date.now(),
+        device_model: deviceModel,
+        connection_type: connectionType
       };
 
       window.currentSessionTelemetry = newAuditEntry;
@@ -477,7 +494,11 @@
       const icon = isMob ? "smartphone" : "monitor";
       
       // Build fetchable details tag list
-      const fetchableHtml = log.fetchable.map(item => `<span class="fetchable-tag">${item}</span>`).join('');
+      let tagList = [...log.fetchable];
+      if (log.connection_type) {
+        tagList.push(`Conn: ${log.connection_type}`);
+      }
+      const fetchableHtml = tagList.map(item => `<span class="fetchable-tag">${escapeHTML(item)}</span>`).join('');
 
       tr.innerHTML = `
         <td style="white-space: nowrap; color: var(--text-primary); font-weight: 700;">[${log.timestamp}]</td>
@@ -491,7 +512,7 @@
         <td>${log.os}</td>
         <td>${log.metrics}</td>
         <td style="color: var(--text-primary); font-weight: bold;">
-          ${log.spec}
+          ${escapeHTML(log.device_model || log.spec)}
           ${isMob ? `<br><span class="badge badge-phone-number"><i data-lucide="phone-off" style="width: 8px; height: 8px; display: inline-block; vertical-align: middle; margin-right: 0.15rem;"></i> ${log.phoneNumber}</span>` : ""}
         </td>
         <td>${fetchableHtml}</td>
@@ -581,9 +602,9 @@
         <td>
           <span class="badge ${badgeClass}" style="font-size: 0.65rem;">
             <i data-lucide="${icon}" style="width: 10px; height: 10px; display: inline-block; vertical-align: middle; margin-right: 0.25rem;"></i>
-            ${escapeHTML(dev)}
+            ${escapeHTML(inq.device_model || dev)}
           </span>
-          ${inq.os ? `<br><small style="color: var(--text-muted); font-size: 0.65rem; font-family: var(--font-mono);">${escapeHTML(inq.os)}</small>` : ''}
+          <br><small style="color: var(--text-muted); font-size: 0.65rem; font-family: var(--font-mono);">${escapeHTML(inq.os || '')} | Net: ${escapeHTML(inq.connection_type || 'Unknown')}</small>
         </td>
         <td style="white-space: normal; line-height: 1.4; min-width: 200px; color: var(--text-secondary);">${escapeHTML(inq.message)}</td>
       `;

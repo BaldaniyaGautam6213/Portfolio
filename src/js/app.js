@@ -706,7 +706,9 @@
           ip: session.ip || 'Unknown',
           device: session.deviceType || 'Unknown',
           os: session.os || 'Unknown',
-          spec: session.spec || 'Unknown'
+          spec: session.spec || 'Unknown',
+          device_model: session.device_model || 'Unknown',
+          connection_type: session.connection_type || 'Unknown'
         };
         inquiries.unshift(newInquiry);
         localStorage.setItem(STORAGE_KEY_INQUIRIES, JSON.stringify(inquiries));
