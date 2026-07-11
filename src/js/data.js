@@ -47,8 +47,6 @@ const PORTFOLIO_DATA = {
     // Programming
     { name: "Python", category: "programming", level: 85, subtext: "Scripting exploits, automation scripts, ML model integration" },
     { name: "Bash Scripting", category: "programming", level: 80, subtext: "SOC triage scripts, log filtering automation" },
-    { name: "Django", category: "programming", level: 75, subtext: "Building secure backends, MVC web models, API endpoints" },
-    { name: "ReactJS", category: "programming", level: 70, subtext: "Creating interactive dashboards, UI components" },
     { name: "Cryptography basics", category: "programming", level: 85, subtext: "SHA chaining, HMAC, AES-256 block modes" }
   ],
 
