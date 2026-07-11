@@ -380,30 +380,19 @@
     localStorage.setItem(ADMIN_KEY, JSON.stringify(admins));
   }
 
-  /** Verify username + password against localStorage then hardcoded master */
+  /** Verify username + password — LOCAL ONLY (no Supabase RPC, avoids server-side auth bugs) */
   async function verifyCreds(username, pass) {
-    // ALWAYS reject empty or whitespace-only passwords — no exceptions
+    // Rule 1: ALWAYS reject blank passwords
     if (!pass || !pass.trim()) return false;
 
-    // Hardcoded master credential check (most reliable, no network dependency)
+    // Rule 2: Hardcoded master credential (cannot be tampered via DB)
     if (username === MASTER_USER && pass === MASTER_PASS) return true;
 
-    // Check localStorage (written by tracker.js)
-    if (readLocalAdmins().some(a => a.username === username && a.passcode === pass)) return true;
-
-    // Last resort: try Supabase RPC (may fail if session not established)
-    const client = getClient();
-    if (client) {
-      try {
-        const { data, error } = await client.rpc('check_admin_login', {
-          p_username: username,
-          p_passcode: pass
-        });
-        if (!error && data && data.length > 0) return true;
-      } catch (e) { /* ignore network errors */ }
-    }
-
-    return false;
+    // Rule 3: Check localStorage accounts written by tracker.js
+    const localMatch = readLocalAdmins().some(
+      a => a.username === username && a.passcode === pass
+    );
+    return localMatch;
   }
 
   /** Check if admin username already exists */
