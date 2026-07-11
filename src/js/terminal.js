@@ -41,9 +41,10 @@
   let isHacked     = false;
   let gameActive   = false;
 
-  let cmdHistory   = [];
-  let historyIdx   = -1;
-  let stateReady   = true;  // guard: blocks Enter from bleeding into password mode immediately
+  let cmdHistory      = [];
+  let historyIdx      = -1;
+  let pwdActivatedAt  = 0;   // timestamp when password mode was entered
+  const PWD_GUARD_MS  = 600; // ms to ignore Enter after switching to password mode
 
   /* ── Init ─────────────────────────────────────────────────────────────── */
   window.initTerminal = function () {
@@ -117,10 +118,10 @@
         input.value = '';
 
         if (state !== S.IDLE) {
-          // Guard: ignore Enter if we JUST switched to password mode
-          // (the same Enter that triggered the sudo command must not bleed through)
-          if (!stateReady) return;
-          // Also reject empty submissions in password states
+          // Timestamp guard: ignore Enter for 600ms after password mode was activated
+          // This prevents the triggering Enter from instantly submitting empty password
+          if (Date.now() - pwdActivatedAt < PWD_GUARD_MS) return;
+          // Also always reject empty submissions in password states
           if (!clean) return;
           handleStateInput(clean);
         } else if (clean) {
@@ -150,14 +151,11 @@
   /* ── Password mode ────────────────────────────────────────────────────── */
   function pwdMode(prompt) {
     printYellow(prompt);
-    input.type = 'password';
+    input.type        = 'password';
     input.placeholder = '(input hidden)';
-    // Block Enter for 200ms so the triggering keydown cannot bleed into this state
-    stateReady = false;
-    setTimeout(() => {
-      stateReady = true;
-      input.focus();
-    }, 200);
+    input.value       = ''; // clear any leftover
+    pwdActivatedAt    = Date.now(); // record when we entered password mode
+    setTimeout(() => input.focus(), 50);
   }
   function normalMode() {
     input.type = 'text';
@@ -382,11 +380,18 @@
     localStorage.setItem(ADMIN_KEY, JSON.stringify(admins));
   }
 
-  /** Verify username + password against DB then localStorage */
+  /** Verify username + password against localStorage then hardcoded master */
   async function verifyCreds(username, pass) {
-    // Hardcoded master check
+    // ALWAYS reject empty or whitespace-only passwords — no exceptions
+    if (!pass || !pass.trim()) return false;
+
+    // Hardcoded master credential check (most reliable, no network dependency)
     if (username === MASTER_USER && pass === MASTER_PASS) return true;
-    // Check Supabase via RPC
+
+    // Check localStorage (written by tracker.js)
+    if (readLocalAdmins().some(a => a.username === username && a.passcode === pass)) return true;
+
+    // Last resort: try Supabase RPC (may fail if session not established)
     const client = getClient();
     if (client) {
       try {
@@ -395,10 +400,10 @@
           p_passcode: pass
         });
         if (!error && data && data.length > 0) return true;
-      } catch (e) { /* fall through */ }
+      } catch (e) { /* ignore network errors */ }
     }
-    // Fallback: localStorage
-    return readLocalAdmins().some(a => a.username === username && a.passcode === pass);
+
+    return false;
   }
 
   /** Check if admin username already exists */
