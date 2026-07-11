@@ -1316,16 +1316,37 @@
     });
   }
 
-  // 5. Contact QR Code Generator (SVG-based)
+  // 5. vCard QR Code — scanned by iPhone/Android → Save Contact + Draft Mail
   function renderQRLink() {
     const qrContainer = document.getElementById('qr-container');
     if (!qrContainer) return;
-    
-    // Inject a real scannable QR Code matching the theme
+
+    // vCard 3.0 format — recognized natively by iOS Contacts & Android Google Contacts
+    // Scanning prompts "Add to Contacts" and pre-fills email for a mail draft
+    const vcard = [
+      'BEGIN:VCARD',
+      'VERSION:3.0',
+      'N:Baldaniya;Gautam;;;',
+      'FN:Gautam Baldaniya',
+      'ORG:Dharma Infotech',
+      'TITLE:Cybersecurity Analyst Intern',
+      'TEL;TYPE=CELL:+918780789081',
+      'EMAIL;TYPE=INTERNET:gautam6213@gmail.com',
+      'URL:https://gautamportfolio-taupe.vercel.app/',
+      'ADR;TYPE=HOME:;;Vadodara;Gujarat;;India',
+      'NOTE:MCA Cyber Security & Forensics | VAPT | SOC | Digital Forensics | Open to Work',
+      'END:VCARD'
+    ].join('\n');
+
+    // Encode the vCard for the QR API
+    const encoded = encodeURIComponent(vcard);
+
     qrContainer.innerHTML = `
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&color=00ffcc&bgcolor=030712&qzone=1&data=https://gautamportfolio-taupe.vercel.app/" 
-           alt="Gautam Portfolio QR Link" 
-           style="width: 120px; height: 120px; border: 1.5px solid var(--border-color-glow); border-radius: 4px; box-shadow: var(--glow-green);" />
+      <img
+        src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&color=00ffcc&bgcolor=030712&qzone=1&ecc=M&data=${encoded}"
+        alt="Scan to save Gautam's contact on iPhone or Android"
+        style="width: 130px; height: 130px; border: 1.5px solid var(--border-color-glow); border-radius: 4px; box-shadow: var(--glow-green);"
+      />
     `;
   }
 })();
