@@ -43,6 +43,7 @@
 
   let cmdHistory   = [];
   let historyIdx   = -1;
+  let stateReady   = true;  // guard: blocks Enter from bleeding into password mode immediately
 
   /* ── Init ─────────────────────────────────────────────────────────────── */
   window.initTerminal = function () {
@@ -116,6 +117,11 @@
         input.value = '';
 
         if (state !== S.IDLE) {
+          // Guard: ignore Enter if we JUST switched to password mode
+          // (the same Enter that triggered the sudo command must not bleed through)
+          if (!stateReady) return;
+          // Also reject empty submissions in password states
+          if (!clean) return;
           handleStateInput(clean);
         } else if (clean) {
           cmdHistory.push(clean);
@@ -146,6 +152,12 @@
     printYellow(prompt);
     input.type = 'password';
     input.placeholder = '(input hidden)';
+    // Block Enter for 200ms so the triggering keydown cannot bleed into this state
+    stateReady = false;
+    setTimeout(() => {
+      stateReady = true;
+      input.focus();
+    }, 200);
   }
   function normalMode() {
     input.type = 'text';
