@@ -706,12 +706,12 @@
               </div>
             </div>
             <div class="resume-banner-buttons">
-              <a href="./Gautam_Baldaniya_Cybersecurity_Resume.pdf" target="_blank" class="btn btn-primary">
+              <button class="btn btn-primary" id="resume-open-btn">
                 <i data-lucide="external-link"></i><span>OPEN PDF DIRECTLY</span>
-              </a>
-              <a href="./Gautam_Baldaniya_Cybersecurity_Resume.pdf" download class="btn btn-secondary">
+              </button>
+              <button class="btn btn-secondary" id="resume-download-btn">
                 <i data-lucide="download"></i><span>DOWNLOAD PDF</span>
-              </a>
+              </button>
             </div>
           </div>
 
@@ -1173,6 +1173,133 @@
 
   <!-- Alert Banner system for micro-alerts -->
   <div class="notification-center" id="notification-center"></div>
+
+  <!-- ============================================================
+       RECRUITER GATE MODAL — shown before PDF download/open
+       ============================================================ -->
+  <div class="modal hidden" id="recruiter-gate-modal">
+    <div class="recruiter-gate-wrap" id="recruiter-gate-card">
+
+      <!-- Header -->
+      <div class="gate-header">
+        <div class="gate-header-left">
+          <div class="gate-shield-icon">
+            <i data-lucide="shield-check" class="text-cyber-green animate-pulse"></i>
+          </div>
+          <div>
+            <h3 class="gate-title">RECRUITER IDENTITY VERIFICATION</h3>
+            <p class="gate-subtitle">Verify your identity to access resume files</p>
+          </div>
+        </div>
+        <div class="gate-trust-badge">
+          <span class="pulse-dot green"></span>
+          <span>Secure Channel</span>
+        </div>
+      </div>
+
+      <!-- Scan Line Divider -->
+      <div class="gate-scan-bar"><div class="gate-scan-line"></div></div>
+
+      <!-- Alert Banner -->
+      <div class="gate-alert-banner">
+        <i data-lucide="info"></i>
+        <span>Access to this file is logged. Provide accurate credentials — your session telemetry is being recorded.</span>
+      </div>
+
+      <!-- Form -->
+      <form id="recruiter-gate-form" class="gate-form" novalidate>
+
+        <div class="gate-form-row">
+          <div class="gate-form-group">
+            <label class="gate-label" for="gate-name">
+              <i data-lucide="user"></i> FULL NAME <span class="gate-required">*</span>
+            </label>
+            <input
+              type="text"
+              id="gate-name"
+              class="gate-input"
+              placeholder="e.g. Priya Sharma"
+              autocomplete="off"
+              required
+            >
+            <span class="gate-field-error" id="gate-name-err"></span>
+          </div>
+          <div class="gate-form-group">
+            <label class="gate-label" for="gate-company">
+              <i data-lucide="building-2"></i> COMPANY / ORGANIZATION <span class="gate-required">*</span>
+            </label>
+            <input
+              type="text"
+              id="gate-company"
+              class="gate-input"
+              placeholder="e.g. Infosys, TCS, Startup XYZ"
+              autocomplete="off"
+              required
+            >
+            <span class="gate-field-error" id="gate-company-err"></span>
+          </div>
+        </div>
+
+        <div class="gate-form-row">
+          <div class="gate-form-group">
+            <label class="gate-label" for="gate-email">
+              <i data-lucide="mail"></i> WORK EMAIL <span class="gate-required">*</span>
+            </label>
+            <input
+              type="email"
+              id="gate-email"
+              class="gate-input"
+              placeholder="name@company.com"
+              autocomplete="off"
+              required
+            >
+            <span class="gate-field-error" id="gate-email-err"></span>
+            <span class="gate-field-hint" id="gate-email-trust"></span>
+          </div>
+          <div class="gate-form-group">
+            <label class="gate-label" for="gate-phone">
+              <i data-lucide="phone"></i> PHONE NUMBER <span class="gate-required">*</span>
+            </label>
+            <input
+              type="tel"
+              id="gate-phone"
+              class="gate-input"
+              placeholder="+91 98765 XXXXX"
+              autocomplete="off"
+              required
+            >
+            <span class="gate-field-error" id="gate-phone-err"></span>
+          </div>
+        </div>
+
+        <!-- Telemetry notice -->
+        <div class="gate-telemetry-row">
+          <i data-lucide="cpu"></i>
+          <span>SESSION FINGERPRINT: <span id="gate-telemetry-preview" class="text-cyber-green">Scanning...</span></span>
+        </div>
+
+        <!-- Actions -->
+        <div class="gate-actions">
+          <button type="button" class="gate-cancel-btn" id="gate-cancel-btn">
+            <i data-lucide="x"></i>
+            <span>CANCEL</span>
+          </button>
+          <button type="submit" class="gate-submit-btn" id="gate-submit-btn">
+            <i data-lucide="unlock" id="gate-submit-icon"></i>
+            <span id="gate-submit-text">VERIFY & ACCESS RESUME</span>
+          </button>
+        </div>
+
+      </form>
+
+      <!-- Suspicious flag indicator (hidden, revealed if free email) -->
+      <div class="gate-suspicious-flag hidden" id="gate-suspicious-flag">
+        <i data-lucide="alert-triangle" class="text-cyber-yellow"></i>
+        <span>Personal email detected — session flagged for review. Proceed anyway?</span>
+      </div>
+
+    </div>
+  </div>
 
   <!-- Scripts Loading -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

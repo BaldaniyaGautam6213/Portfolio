@@ -994,3 +994,1110 @@
   };
 
 })();
+
+/* ==========================================================================
+   RECRUITER GATE MODAL — download & open tracking
+   with real-time company verification (Clearbit APIs)
+   ========================================================================== */
+(function() {
+  // Free / personal email providers — flagged as suspicious
+  const FREE_PROVIDERS = new Set([
+    'gmail.com','yahoo.com','yahoo.in','hotmail.com','outlook.com','live.com',
+    'icloud.com','me.com','protonmail.com','proton.me','aol.com','mail.com',
+    'ymail.com','rediffmail.com','zoho.com','tutanota.com','gmx.com',
+    'msn.com','yandex.com','yandex.ru','163.com','qq.com','126.com',
+    'inbox.com','fastmail.com','tempmail.com','guerrillamail.com','mailinator.com',
+    'throwam.com','sharklasers.com','guerrillamailblock.com','spam4.me'
+  ]);
+
+  // Clearbit free endpoints — no API key required
+  const CLEARBIT_AUTOCOMPLETE = 'https://autocomplete.clearbit.com/v1/companies/suggest?query=';
+  const CLEARBIT_LOGO         = 'https://logo.clearbit.com/';
+
+  const PDF_PATH              = './Gautam_Baldaniya_Cybersecurity_Resume.pdf';
+  const SESSION_PASS_KEY      = 'gautam_sec_gate_passed';
+  const SESSION_SUSPICIOUS    = 'gautam_sec_gate_suspicious';
+  const STORAGE_KEY_INQUIRIES = 'gautam_sec_recruiter_inquiries';
+
+  let pendingAction          = null;  // 'open' | 'download'
+  let selectedCompany        = null;  // { name, domain, logo } from Clearbit autocomplete
+  let emailDomainVerified    = false; // true if Clearbit logo probe succeeded
+  let emailDomainLogo        = null;  // URL if logo found
+  let companyAutoTimer       = null;
+  let emailVerifyTimer       = null;
+  let autocompleteResults    = [];
+
+  /* -------------------------------------------------------------------------
+     Determine if we need to show the gate for this session
+     - Company email → once per session (pass stored in sessionStorage)
+     - Free email    → every session (no pass stored)
+     ------------------------------------------------------------------------- */
+  function gateRequired() {
+    return sessionStorage.getItem(SESSION_PASS_KEY) !== 'true';
+  }
+
+  /* -------------------------------------------------------------------------
+     Open the gate modal
+     ------------------------------------------------------------------------- */
+  function openGateModal(action) {
+    pendingAction = action;
+    const modal = document.getElementById('recruiter-gate-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+    populateTelemetryPreview();
+    resetGateForm();
+    // Focus first field
+    setTimeout(() => {
+      const nameInput = document.getElementById('gate-name');
+      if (nameInput) nameInput.focus();
+    }, 350);
+  }
+
+  function closeGateModal() {
+    const modal = document.getElementById('recruiter-gate-modal');
+    if (modal) modal.classList.add('hidden');
+    hideAutocompleteDropdown();
+    pendingAction = null;
+  }
+
+  /* -------------------------------------------------------------------------
+     Telemetry preview bar inside the modal
+     ------------------------------------------------------------------------- */
+  function populateTelemetryPreview() {
+    const el = document.getElementById('gate-telemetry-preview');
+    if (!el) return;
+    const session = window.currentSessionTelemetry || {};
+    const ip  = session.ip   || 'Resolving...';
+    const dev = session.spec || session.deviceType || 'Unknown Device';
+    const tz  = session.fetchable
+      ? (session.fetchable.find(f => f.startsWith('Timezone:')) || '').replace('Timezone: ', '')
+      : Intl.DateTimeFormat().resolvedOptions().timeZone;
+    el.textContent = `IP: ${ip} | ${dev}${tz ? ' | TZ: ' + tz : ''}`;
+  }
+
+  /* =========================================================================
+     COMPANY AUTOCOMPLETE — Clearbit Company Suggest API
+     ========================================================================= */
+
+  function initCompanyAutocomplete() {
+    const companyInput = document.getElementById('gate-company');
+    if (!companyInput) return;
+
+    // Inject autocomplete dropdown container below the company field
+    let dropdown = document.getElementById('gate-company-dropdown');
+    if (!dropdown) {
+      dropdown = document.createElement('div');
+      dropdown.id = 'gate-company-dropdown';
+      dropdown.className = 'gate-ac-dropdown hidden';
+      companyInput.parentNode.appendChild(dropdown);
+    }
+
+    companyInput.addEventListener('input', () => {
+      clearTimeout(companyAutoTimer);
+      const q = companyInput.value.trim();
+      if (q.length < 2) {
+        hideAutocompleteDropdown();
+        selectedCompany = null;
+        return;
+      }
+      // Show loading state in dropdown
+      showDropdownLoading(dropdown);
+      companyAutoTimer = setTimeout(() => fetchCompanySuggestions(q, dropdown, companyInput), 380);
+    });
+
+    companyInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') hideAutocompleteDropdown();
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!companyInput.contains(e.target) && !dropdown.contains(e.target)) {
+        hideAutocompleteDropdown();
+      }
+    });
+  }
+
+  async function fetchCompanySuggestions(query, dropdown, input) {
+    try {
+      const res = await fetch(CLEARBIT_AUTOCOMPLETE + encodeURIComponent(query));
+      if (!res.ok) { hideAutocompleteDropdown(); return; }
+      autocompleteResults = await res.json();
+      renderAutocompleteDropdown(autocompleteResults, dropdown, input);
+    } catch(e) {
+      hideAutocompleteDropdown();
+    }
+  }
+
+  function showDropdownLoading(dropdown) {
+    dropdown.classList.remove('hidden');
+    dropdown.innerHTML = `
+      <div class="gate-ac-loading">
+        <span class="gate-ac-spinner"></span>
+        <span>Querying company registry...</span>
+      </div>
+    `;
+  }
+
+  function renderAutocompleteDropdown(results, dropdown, input) {
+    if (!results || results.length === 0) {
+      dropdown.innerHTML = `<div class="gate-ac-empty">No companies found — try a different name</div>`;
+      dropdown.classList.remove('hidden');
+      return;
+    }
+
+    dropdown.innerHTML = '';
+    dropdown.classList.remove('hidden');
+
+    results.slice(0, 7).forEach(company => {
+      const item = document.createElement('div');
+      item.className = 'gate-ac-item';
+      item.innerHTML = `
+        <div class="gate-ac-logo-wrap">
+          ${company.logo
+            ? `<img src="${company.logo}" alt="${company.name}" class="gate-ac-logo" onerror="this.parentNode.innerHTML='<span class=\\"gate-ac-logo-fallback\\">${(company.name||'?')[0].toUpperCase()}</span>'">`
+            : `<span class="gate-ac-logo-fallback">${(company.name||'?')[0].toUpperCase()}</span>`
+          }
+        </div>
+        <div class="gate-ac-info">
+          <span class="gate-ac-name">${escapeAC(company.name)}</span>
+          <span class="gate-ac-domain">${escapeAC(company.domain || '')}</span>
+        </div>
+        <span class="gate-ac-verified-chip">✓ Verified</span>
+      `;
+      item.addEventListener('click', () => {
+        selectCompany(company, input, dropdown);
+      });
+      dropdown.appendChild(item);
+    });
+  }
+
+  function selectCompany(company, input, dropdown) {
+    input.value        = company.name;
+    selectedCompany    = company;
+    input.classList.remove('input-error');
+    input.classList.add('input-success');
+
+    // Show verified badge on company field
+    setCompanyVerifiedBadge(company);
+
+    hideAutocompleteDropdown();
+
+    // If email is already filled in — re-run cross-reference immediately
+    const emailEl = document.getElementById('gate-email');
+    if (emailEl && emailEl.value.includes('@')) {
+      runEmailVerification(emailEl.value.trim());
+    }
+  }
+
+  function setCompanyVerifiedBadge(company) {
+    let badge = document.getElementById('gate-company-badge');
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.id = 'gate-company-badge';
+      badge.className = 'gate-company-verified-badge';
+      const companyInput = document.getElementById('gate-company');
+      if (companyInput && companyInput.parentNode) {
+        companyInput.parentNode.insertBefore(badge, companyInput.nextSibling);
+      }
+    }
+    badge.innerHTML = `
+      ${company.logo
+        ? `<img src="${company.logo}" alt="${company.name}" class="gate-badge-logo" onerror="this.style.display='none'">`
+        : ''}
+      <span class="gate-badge-name">${escapeAC(company.name)}</span>
+      <span class="gate-badge-chip verified">✓ COMPANY FOUND</span>
+      ${company.domain ? `<span class="gate-badge-domain">@ ${escapeAC(company.domain)}</span>` : ''}
+    `;
+    badge.classList.remove('hidden');
+  }
+
+  function hideAutocompleteDropdown() {
+    const dropdown = document.getElementById('gate-company-dropdown');
+    if (dropdown) dropdown.classList.add('hidden');
+  }
+
+  function escapeAC(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  /* =========================================================================
+     EMAIL DOMAIN VERIFICATION — Clearbit Logo API probe + cross-reference
+     ========================================================================= */
+
+  async function runEmailVerification(email) {
+    const hintEl  = document.getElementById('gate-email-trust');
+    const flagEl  = document.getElementById('gate-suspicious-flag');
+    const badgeEl = document.getElementById('gate-email-domain-badge');
+    if (!hintEl) return;
+
+    const domain = (email.split('@')[1] || '').toLowerCase();
+    if (!domain || !domain.includes('.')) {
+      clearEmailBadge();
+      return;
+    }
+
+    // 1. Check free provider list first (instant)
+    if (FREE_PROVIDERS.has(domain)) {
+      hintEl.textContent = '⚠  Personal email — session will be flagged for review';
+      hintEl.style.color = 'var(--cyber-yellow)';
+      if (flagEl) flagEl.classList.remove('hidden');
+      emailDomainVerified = false;
+      emailDomainLogo     = null;
+      showEmailDomainBadge('suspicious', domain, null);
+      return;
+    }
+
+    // 2. Show "checking..." state
+    hintEl.textContent = '⟳  Probing company domain registry...';
+    hintEl.style.color = 'var(--text-muted)';
+    if (flagEl) flagEl.classList.add('hidden');
+    showEmailDomainBadge('checking', domain, null);
+
+    // 3. Clearbit logo probe — load as Image (avoids CORS), 200 = company exists
+    const logoExists = await probeClearbitLogo(domain);
+    emailDomainVerified = logoExists;
+    emailDomainLogo     = logoExists ? `${CLEARBIT_LOGO}${domain}` : null;
+
+    // 4. Cross-reference with autocomplete selection
+    const crossMatch = selectedCompany && selectedCompany.domain &&
+                       selectedCompany.domain.toLowerCase() === domain;
+
+    if (crossMatch && logoExists) {
+      // STRONGEST: selected from Clearbit list AND email domain matches
+      hintEl.textContent = `✓  ${selectedCompany.name} — Domain & company cross-verified`;
+      hintEl.style.color = 'var(--cyber-green)';
+      showEmailDomainBadge('strong', domain, emailDomainLogo);
+      if (flagEl) flagEl.classList.add('hidden');
+    } else if (logoExists) {
+      // MEDIUM: domain recognized by Clearbit but no autocomplete match
+      hintEl.textContent = `✓  Recognized corporate domain — company verified`;
+      hintEl.style.color = 'var(--cyber-green)';
+      showEmailDomainBadge('verified', domain, emailDomainLogo);
+      if (flagEl) flagEl.classList.add('hidden');
+    } else if (selectedCompany && !crossMatch) {
+      // Company selected from list but email domain doesn't match
+      hintEl.textContent = `⚠  Email domain doesn't match "${selectedCompany.name}"`;
+      hintEl.style.color = 'var(--cyber-yellow)';
+      showEmailDomainBadge('mismatch', domain, null);
+      if (flagEl) flagEl.classList.remove('hidden');
+    } else {
+      // Unknown domain — not in Clearbit database
+      hintEl.textContent = `ℹ  Unknown domain — not found in company registry`;
+      hintEl.style.color = 'var(--text-muted)';
+      showEmailDomainBadge('unknown', domain, null);
+      if (flagEl) flagEl.classList.add('hidden');
+    }
+  }
+
+  /**
+   * Probes Clearbit Logo API by loading the image.
+   * Returns true if the domain has a recognized company logo (= real company).
+   */
+  function probeClearbitLogo(domain) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      const timer = setTimeout(() => { img.src = ''; resolve(false); }, 4000);
+      img.onload  = () => { clearTimeout(timer); resolve(true); };
+      img.onerror = () => { clearTimeout(timer); resolve(false); };
+      img.src = `${CLEARBIT_LOGO}${domain}?size=24`;
+    });
+  }
+
+  function showEmailDomainBadge(state, domain, logoUrl) {
+    let badge = document.getElementById('gate-email-domain-badge');
+    if (!badge) {
+      badge = document.createElement('div');
+      badge.id = 'gate-email-domain-badge';
+      badge.className = 'gate-email-verify-badge';
+      const emailInput = document.getElementById('gate-email');
+      if (emailInput && emailInput.parentNode) {
+        // Insert after the hint span
+        const hintEl = document.getElementById('gate-email-trust');
+        if (hintEl && hintEl.nextSibling) {
+          emailInput.parentNode.insertBefore(badge, hintEl.nextSibling);
+        } else {
+          emailInput.parentNode.appendChild(badge);
+        }
+      }
+    }
+
+    const stateMap = {
+      checking:   { chip: '⟳ Checking...', cls: 'checking',   icon: '' },
+      strong:     { chip: '✓✓ CROSS-VERIFIED', cls: 'strong',  icon: '' },
+      verified:   { chip: '✓ DOMAIN VERIFIED', cls: 'verified', icon: '' },
+      mismatch:   { chip: '⚠ DOMAIN MISMATCH', cls: 'mismatch', icon: '' },
+      suspicious: { chip: '⚠ PERSONAL EMAIL', cls: 'suspicious', icon: '' },
+      unknown:    { chip: 'ℹ UNVERIFIED DOMAIN', cls: 'unknown', icon: '' },
+    };
+
+    const s = stateMap[state] || stateMap.unknown;
+    badge.className = `gate-email-verify-badge state-${s.cls}`;
+    badge.innerHTML = `
+      ${logoUrl ? `<img src="${logoUrl}" alt="${domain}" class="gate-badge-logo" onerror="this.style.display='none'">` : ''}
+      <span class="gate-badge-domain-text">${escapeAC(domain)}</span>
+      <span class="gate-badge-chip ${s.cls}">${s.chip}</span>
+    `;
+    badge.classList.remove('hidden');
+  }
+
+  function clearEmailBadge() {
+    const badge = document.getElementById('gate-email-domain-badge');
+    if (badge) badge.classList.add('hidden');
+    const hint = document.getElementById('gate-email-trust');
+    if (hint) { hint.textContent = ''; hint.style.color = ''; }
+    const flag = document.getElementById('gate-suspicious-flag');
+    if (flag) flag.classList.add('hidden');
+    emailDomainVerified = false;
+    emailDomainLogo     = null;
+  }
+
+  /* -------------------------------------------------------------------------
+     Form validation
+     ------------------------------------------------------------------------- */
+  function validateGateForm() {
+    let valid = true;
+
+    const fields = [
+      { id: 'gate-name',    errId: 'gate-name-err',    label: 'Full name',    minLen: 2 },
+      { id: 'gate-company', errId: 'gate-company-err', label: 'Company name', minLen: 2 },
+    ];
+
+    fields.forEach(f => {
+      const input = document.getElementById(f.id);
+      const err   = document.getElementById(f.errId);
+      if (!input || !err) return;
+      const val = input.value.trim();
+      if (!val || val.length < f.minLen) {
+        err.textContent = `${f.label} is required`;
+        input.classList.add('input-error');
+        input.classList.remove('input-success');
+        valid = false;
+      } else {
+        err.textContent = '';
+        input.classList.remove('input-error');
+        input.classList.add('input-success');
+      }
+    });
+
+    // Email
+    const emailInput = document.getElementById('gate-email');
+    const emailErr   = document.getElementById('gate-email-err');
+    const emailVal   = emailInput ? emailInput.value.trim() : '';
+    const emailRe    = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailVal || !emailRe.test(emailVal)) {
+      if (emailErr) emailErr.textContent = 'Valid email address is required';
+      if (emailInput) { emailInput.classList.add('input-error'); emailInput.classList.remove('input-success'); }
+      valid = false;
+    } else {
+      if (emailErr) emailErr.textContent = '';
+      if (emailInput) { emailInput.classList.remove('input-error'); emailInput.classList.add('input-success'); }
+    }
+
+    // Phone — must have at least 7 digits
+    const phoneInput = document.getElementById('gate-phone');
+    const phoneErr   = document.getElementById('gate-phone-err');
+    const phoneVal   = phoneInput ? phoneInput.value.trim() : '';
+    const digits     = (phoneVal.replace(/\D/g, '') || '').length;
+    if (!phoneVal || digits < 7) {
+      if (phoneErr) phoneErr.textContent = 'Valid phone number is required';
+      if (phoneInput) { phoneInput.classList.add('input-error'); phoneInput.classList.remove('input-success'); }
+      valid = false;
+    } else {
+      if (phoneErr) phoneErr.textContent = '';
+      if (phoneInput) { phoneInput.classList.remove('input-error'); phoneInput.classList.add('input-success'); }
+    }
+
+    return valid;
+  }
+
+  /* -------------------------------------------------------------------------
+     Determine verification trust level for saving
+     ------------------------------------------------------------------------- */
+  function getTrustLevel(emailDomain) {
+    if (FREE_PROVIDERS.has(emailDomain)) return 'SUSPICIOUS';
+    const crossMatch = selectedCompany && selectedCompany.domain &&
+                       selectedCompany.domain.toLowerCase() === emailDomain;
+    if (crossMatch && emailDomainVerified) return 'CROSS_VERIFIED';
+    if (emailDomainVerified) return 'DOMAIN_VERIFIED';
+    if (selectedCompany)    return 'COMPANY_SELECTED';
+    return 'UNVERIFIED';
+  }
+
+  /* -------------------------------------------------------------------------
+     Save the recruiter lead
+     ------------------------------------------------------------------------- */
+  async function saveRecruiterLead(name, company, email, phone) {
+    const domain       = (email.split('@')[1] || '').toLowerCase();
+    const isSuspicious = FREE_PROVIDERS.has(domain);
+    const trustLevel   = getTrustLevel(domain);
+
+    const session = window.currentSessionTelemetry || {};
+    const ts = new Date().toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour12: false })
+             + '.' + String(new Date().getMilliseconds()).padStart(3, '0');
+
+    // Build a rich verification summary for the message field
+    const verifySummary = [
+      `Company: ${company}`,
+      `Clearbit Match: ${selectedCompany ? selectedCompany.name + ' (' + (selectedCompany.domain||'N/A') + ')' : 'None selected'}`,
+      `Email Domain Logo: ${emailDomainVerified ? 'FOUND ✓' : 'Not found'}`,
+      `Trust Level: ${trustLevel}`,
+      `Phone: ${phone}`,
+      `Action: ${pendingAction || 'download'}`,
+    ].join(' | ');
+
+    const entry = {
+      timestamp:       ts,
+      name:            name,
+      email:           email,
+      subject:         `RESUME_DOWNLOAD [${trustLevel}]`,
+      message:         verifySummary,
+      ip:              session.ip            || 'Unknown',
+      device:          session.deviceType    || 'Unknown',
+      os:              session.os            || 'Unknown',
+      spec:            session.spec          || 'Unknown',
+      device_model:    session.device_model  || 'Unknown',
+      connection_type: session.connection_type || 'Unknown',
+    };
+
+    // 1. Save locally
+    try {
+      const localData = localStorage.getItem(STORAGE_KEY_INQUIRIES);
+      const inquiries = localData ? JSON.parse(localData) : [];
+      inquiries.unshift(entry);
+      localStorage.setItem(STORAGE_KEY_INQUIRIES, JSON.stringify(inquiries));
+    } catch(e) {}
+
+    // 2. Push to Supabase
+    const client = window.supabaseClient;
+    if (client) {
+      try {
+        await client.from('recruiter_inquiries').insert([entry]);
+      } catch(e) {
+        console.warn('Gate: Supabase insert failed:', e);
+      }
+    }
+
+    // 3. Email alert via FormSubmit
+    const trustEmoji = {
+      CROSS_VERIFIED:  '✅ CROSS-VERIFIED',
+      DOMAIN_VERIFIED: '✓ DOMAIN VERIFIED',
+      COMPANY_SELECTED:'🔵 COMPANY SELECTED (domain not verified)',
+      SUSPICIOUS:      '⚠ SUSPICIOUS — FREE EMAIL',
+      UNVERIFIED:      'ℹ UNVERIFIED DOMAIN',
+    };
+
+    try {
+      fetch('https://formsubmit.co/ajax/gautam6213@gmail.com', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          name:     `${name} (${company})`,
+          email:    email,
+          message:  `📄 RESUME DOWNLOAD ALERT\n\nName: ${name}\nCompany: ${company}\nEmail: ${email}\nPhone: ${phone}\n\n🔍 VERIFICATION RESULT: ${trustEmoji[trustLevel] || trustLevel}\nClearbit Company Match: ${selectedCompany ? selectedCompany.name : 'None'}\nDomain Logo Probe: ${emailDomainVerified ? 'PASS ✓' : 'FAIL'}\n\nDevice: ${session.deviceType||'N/A'} | IP: ${session.ip||'N/A'}\nAction: ${pendingAction}`,
+          _subject: `[RESUME] ${name} @ ${company} — ${trustEmoji[trustLevel] || trustLevel}`,
+          _captcha: 'false'
+        })
+      }).catch(() => {});
+    } catch(e) {}
+
+    // 4. Refresh admin inquiries table
+    if (window.renderInquiriesTable) window.renderInquiriesTable();
+
+    // 5. Session bypass — only for non-suspicious
+    if (!isSuspicious) {
+      sessionStorage.setItem(SESSION_PASS_KEY, 'true');
+    } else {
+      sessionStorage.removeItem(SESSION_PASS_KEY);
+      sessionStorage.setItem(SESSION_SUSPICIOUS, 'true');
+    }
+
+    return { isSuspicious, trustLevel };
+  }
+
+  /* -------------------------------------------------------------------------
+     Trigger the actual PDF action after verification
+     ------------------------------------------------------------------------- */
+  function executePdfAction(action) {
+    if (action === 'open') {
+      window.open(PDF_PATH, '_blank');
+    } else {
+      const a = document.createElement('a');
+      a.href = PDF_PATH;
+      a.download = 'Gautam_Baldaniya_Cybersecurity_Resume.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  }
+
+  /* -------------------------------------------------------------------------
+     Reset form fields & error states
+     ------------------------------------------------------------------------- */
+  function resetGateForm() {
+    // Reset state vars
+    selectedCompany     = null;
+    emailDomainVerified = false;
+    emailDomainLogo     = null;
+
+    ['gate-name','gate-company','gate-email','gate-phone'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.value = ''; el.classList.remove('input-error','input-success'); }
+    });
+    ['gate-name-err','gate-company-err','gate-email-err','gate-phone-err'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '';
+    });
+
+    const hintEl = document.getElementById('gate-email-trust');
+    if (hintEl) { hintEl.textContent = ''; hintEl.style.color = ''; }
+    const flagEl = document.getElementById('gate-suspicious-flag');
+    if (flagEl) flagEl.classList.add('hidden');
+
+    // Remove injected badges
+    ['gate-company-badge','gate-email-domain-badge'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    });
+    hideAutocompleteDropdown();
+
+    // Reset submit btn
+    const btn  = document.getElementById('gate-submit-btn');
+    const icon = document.getElementById('gate-submit-icon');
+    const txt  = document.getElementById('gate-submit-text');
+    if (btn)  btn.disabled = false;
+    if (icon) icon.setAttribute('data-lucide', 'unlock');
+    if (txt)  txt.textContent = 'VERIFY & ACCESS RESUME';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  /* -------------------------------------------------------------------------
+     Wire up all button click interceptions
+     ------------------------------------------------------------------------- */
+  function initGateInterception() {
+    // Hero download button
+    const heroBtn = document.getElementById('hero-resume-btn');
+    if (heroBtn) {
+      heroBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        gateRequired() ? openGateModal('download') : executePdfAction('download');
+      });
+    }
+
+    // Resume page — Open PDF directly
+    const openBtn = document.getElementById('resume-open-btn');
+    if (openBtn) {
+      openBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        gateRequired() ? openGateModal('open') : executePdfAction('open');
+      });
+    }
+
+    // Resume page — Download PDF
+    const dlBtn = document.getElementById('resume-download-btn');
+    if (dlBtn) {
+      dlBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        gateRequired() ? openGateModal('download') : executePdfAction('download');
+      });
+    }
+
+    // Cancel button
+    const cancelBtn = document.getElementById('gate-cancel-btn');
+    if (cancelBtn) cancelBtn.addEventListener('click', closeGateModal);
+
+    // Click outside to close
+    const modal = document.getElementById('recruiter-gate-modal');
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeGateModal();
+      });
+    }
+
+    // Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const modal = document.getElementById('recruiter-gate-modal');
+        if (modal && !modal.classList.contains('hidden')) closeGateModal();
+      }
+    });
+
+    // -----------------------------------------------------------------------
+    // Company field — Clearbit autocomplete
+    // -----------------------------------------------------------------------
+    initCompanyAutocomplete();
+
+    // -----------------------------------------------------------------------
+    // Email field — debounced domain verification
+    // -----------------------------------------------------------------------
+    const emailInput = document.getElementById('gate-email');
+    if (emailInput) {
+      emailInput.addEventListener('input', () => {
+        clearTimeout(emailVerifyTimer);
+        const val = emailInput.value.trim();
+        if (!val.includes('@') || !val.split('@')[1]) {
+          clearEmailBadge();
+          return;
+        }
+        // Short debounce so we don't fire on every keystroke
+        emailVerifyTimer = setTimeout(() => runEmailVerification(val), 600);
+      });
+    }
+
+    // -----------------------------------------------------------------------
+    // Form submit
+    // -----------------------------------------------------------------------
+    const form = document.getElementById('recruiter-gate-form');
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!validateGateForm()) return;
+
+        const name    = document.getElementById('gate-name').value.trim();
+        const company = document.getElementById('gate-company').value.trim();
+        const email   = document.getElementById('gate-email').value.trim();
+        const phone   = document.getElementById('gate-phone').value.trim();
+
+        const btn  = document.getElementById('gate-submit-btn');
+        const icon = document.getElementById('gate-submit-icon');
+        const txt  = document.getElementById('gate-submit-text');
+        if (btn)  btn.disabled = true;
+        if (icon) icon.setAttribute('data-lucide', 'loader');
+        if (txt)  txt.textContent = 'VERIFYING...';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+
+        try {
+          const { isSuspicious, trustLevel } = await saveRecruiterLead(name, company, email, phone);
+
+          if (icon) icon.setAttribute('data-lucide', 'check-circle');
+          if (txt)  txt.textContent = 'ACCESS GRANTED';
+          if (typeof lucide !== 'undefined') lucide.createIcons();
+
+          if (window.showNotification) {
+            if (isSuspicious) {
+              window.showNotification('Lead captured — personal email flagged for review.', 'info');
+            } else if (trustLevel === 'CROSS_VERIFIED') {
+              window.showNotification('Cross-verified recruiter identity. Accessing resume...', 'success');
+            } else {
+              window.showNotification('Identity verified. Accessing resume files...', 'success');
+            }
+          }
+
+          setTimeout(() => {
+            closeGateModal();
+            executePdfAction(pendingAction || 'download');
+          }, 900);
+
+        } catch(err) {
+          console.error('Gate save error:', err);
+          if (icon) icon.setAttribute('data-lucide', 'unlock');
+          if (txt)  txt.textContent = 'VERIFY & ACCESS RESUME';
+          if (btn)  btn.disabled = false;
+          if (typeof lucide !== 'undefined') lucide.createIcons();
+          // Never block the recruiter — open file anyway
+          closeGateModal();
+          executePdfAction(pendingAction || 'download');
+        }
+      });
+    }
+  }
+
+  // Init after DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initGateInterception);
+  } else {
+    initGateInterception();
+  }
+
+})();
+
+  const STORAGE_KEY_INQUIRIES = 'gautam_sec_recruiter_inquiries';
+
+  let pendingAction = null; // 'open' | 'download'
+
+  /* -------------------------------------------------------------------------
+     Determine if we need to show the gate for this session
+     - Company email → once per session (pass stored in sessionStorage)
+     - Free email    → every session (no pass stored)
+     ------------------------------------------------------------------------- */
+  function gateRequired() {
+    return sessionStorage.getItem(SESSION_PASS_KEY) !== 'true';
+  }
+
+  /* -------------------------------------------------------------------------
+     Open the gate modal
+     ------------------------------------------------------------------------- */
+  function openGateModal(action) {
+    pendingAction = action;
+    const modal = document.getElementById('recruiter-gate-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+
+    // Refresh icons
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    // Populate telemetry preview
+    populateTelemetryPreview();
+
+    // Reset form state
+    resetGateForm();
+  }
+
+  function closeGateModal() {
+    const modal = document.getElementById('recruiter-gate-modal');
+    if (modal) modal.classList.add('hidden');
+    pendingAction = null;
+  }
+
+  /* -------------------------------------------------------------------------
+     Telemetry preview bar inside the modal
+     ------------------------------------------------------------------------- */
+  function populateTelemetryPreview() {
+    const el = document.getElementById('gate-telemetry-preview');
+    if (!el) return;
+    const session = window.currentSessionTelemetry || {};
+    const ip   = session.ip   || 'Resolving...';
+    const dev  = session.spec || session.deviceType || 'Unknown Device';
+    const tz   = session.fetchable
+      ? (session.fetchable.find(f => f.startsWith('Timezone:')) || '').replace('Timezone: ', '')
+      : Intl.DateTimeFormat().resolvedOptions().timeZone;
+    el.textContent = `IP: ${ip} | ${dev}${tz ? ' | TZ: ' + tz : ''}`;
+  }
+
+  /* -------------------------------------------------------------------------
+     Real-time email legitimacy feedback
+     ------------------------------------------------------------------------- */
+  function checkEmailLegitimacy(email) {
+    const hintEl  = document.getElementById('gate-email-trust');
+    const flagEl  = document.getElementById('gate-suspicious-flag');
+    if (!hintEl || !flagEl) return;
+
+    const domain = email.split('@')[1] || '';
+    if (!domain) { hintEl.textContent = ''; hintEl.style.color = ''; flagEl.classList.add('hidden'); return; }
+
+    if (FREE_PROVIDERS.has(domain.toLowerCase())) {
+      hintEl.textContent = '⚠ Personal email — session will be flagged';
+      hintEl.style.color = 'var(--cyber-yellow)';
+      flagEl.classList.remove('hidden');
+    } else {
+      hintEl.textContent = '✓ Company email verified';
+      hintEl.style.color = 'var(--cyber-green)';
+      flagEl.classList.add('hidden');
+    }
+  }
+
+  /* -------------------------------------------------------------------------
+     Form validation
+     ------------------------------------------------------------------------- */
+  function validateGateForm() {
+    let valid = true;
+
+    const fields = [
+      { id: 'gate-name',    errId: 'gate-name-err',    label: 'Full name',    minLen: 2 },
+      { id: 'gate-company', errId: 'gate-company-err', label: 'Company name', minLen: 2 },
+    ];
+
+    fields.forEach(f => {
+      const input = document.getElementById(f.id);
+      const err   = document.getElementById(f.errId);
+      if (!input || !err) return;
+      const val = input.value.trim();
+      if (!val || val.length < f.minLen) {
+        err.textContent = `${f.label} is required`;
+        input.classList.add('input-error');
+        input.classList.remove('input-success');
+        valid = false;
+      } else {
+        err.textContent = '';
+        input.classList.remove('input-error');
+        input.classList.add('input-success');
+      }
+    });
+
+    // Email
+    const emailInput = document.getElementById('gate-email');
+    const emailErr   = document.getElementById('gate-email-err');
+    const emailVal   = emailInput ? emailInput.value.trim() : '';
+    const emailRe    = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailVal || !emailRe.test(emailVal)) {
+      if (emailErr) emailErr.textContent = 'Valid email address is required';
+      if (emailInput) { emailInput.classList.add('input-error'); emailInput.classList.remove('input-success'); }
+      valid = false;
+    } else {
+      if (emailErr) emailErr.textContent = '';
+      if (emailInput) { emailInput.classList.remove('input-error'); emailInput.classList.add('input-success'); }
+    }
+
+    // Phone — must have at least 7 digits
+    const phoneInput = document.getElementById('gate-phone');
+    const phoneErr   = document.getElementById('gate-phone-err');
+    const phoneVal   = phoneInput ? phoneInput.value.trim() : '';
+    const digits     = (phoneVal.replace(/\D/g, '') || '').length;
+    if (!phoneVal || digits < 7) {
+      if (phoneErr) phoneErr.textContent = 'Valid phone number is required';
+      if (phoneInput) { phoneInput.classList.add('input-error'); phoneInput.classList.remove('input-success'); }
+      valid = false;
+    } else {
+      if (phoneErr) phoneErr.textContent = '';
+      if (phoneInput) { phoneInput.classList.remove('input-error'); phoneInput.classList.add('input-success'); }
+    }
+
+    return valid;
+  }
+
+  /* -------------------------------------------------------------------------
+     Save the recruiter lead
+     ------------------------------------------------------------------------- */
+  async function saveRecruiterLead(name, company, email, phone) {
+    const domain = (email.split('@')[1] || '').toLowerCase();
+    const isSuspicious = FREE_PROVIDERS.has(domain);
+
+    const session = window.currentSessionTelemetry || {};
+    const ts = new Date().toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour12: false })
+             + '.' + String(new Date().getMilliseconds()).padStart(3, '0');
+
+    const entry = {
+      timestamp:        ts,
+      name:             name,
+      email:            email,
+      subject:          'RESUME_DOWNLOAD' + (isSuspicious ? ' [SUSPICIOUS]' : ' [VERIFIED]'),
+      message:          `Company: ${company} | Phone: ${phone} | Action: ${pendingAction || 'download'} | Domain Trust: ${isSuspicious ? 'FREE EMAIL — FLAGGED' : 'COMPANY DOMAIN — TRUSTED'}`,
+      ip:               session.ip            || 'Unknown',
+      device:           session.deviceType    || 'Unknown',
+      os:               session.os            || 'Unknown',
+      spec:             session.spec          || 'Unknown',
+      device_model:     session.device_model  || 'Unknown',
+      connection_type:  session.connection_type || 'Unknown',
+    };
+
+    // 1. Save locally
+    try {
+      const localData   = localStorage.getItem(STORAGE_KEY_INQUIRIES);
+      const inquiries   = localData ? JSON.parse(localData) : [];
+      inquiries.unshift(entry);
+      localStorage.setItem(STORAGE_KEY_INQUIRIES, JSON.stringify(inquiries));
+    } catch(e) {}
+
+    // 2. Push to Supabase
+    const client = window.supabaseClient;
+    if (client) {
+      try {
+        await client.from('recruiter_inquiries').insert([entry]);
+      } catch(e) {
+        console.warn('Gate: Supabase insert failed:', e);
+      }
+    }
+
+    // 3. Dispatch email alert via FormSubmit
+    try {
+      fetch('https://formsubmit.co/ajax/gautam6213@gmail.com', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          name:     `${name} (${company})`,
+          email:    email,
+          message:  `📄 RESUME DOWNLOAD ALERT\n\nName: ${name}\nCompany: ${company}\nEmail: ${email}\nPhone: ${phone}\nAction: ${pendingAction}\nIP: ${session.ip || 'N/A'}\nDevice: ${session.deviceType || 'N/A'}\nSuspicious: ${isSuspicious ? 'YES ⚠' : 'No ✓'}`,
+          _subject: `[RESUME ACCESS] ${name} @ ${company} — ${isSuspicious ? '⚠ FLAGGED' : '✓ Verified'}`,
+          _captcha: 'false'
+        })
+      }).catch(() => {});
+    } catch(e) {}
+
+    // 4. Refresh admin inquiries table if visible
+    if (window.renderInquiriesTable) {
+      window.renderInquiriesTable();
+    }
+
+    // 5. Grant session bypass ONLY for company email domains
+    if (!isSuspicious) {
+      sessionStorage.setItem(SESSION_PASS_KEY, 'true');
+    } else {
+      sessionStorage.removeItem(SESSION_PASS_KEY);
+      sessionStorage.setItem(SESSION_SUSPICIOUS, 'true');
+    }
+
+    return { isSuspicious };
+  }
+
+  /* -------------------------------------------------------------------------
+     Trigger the actual PDF action after verification
+     ------------------------------------------------------------------------- */
+  function executePdfAction(action) {
+    if (action === 'open') {
+      window.open(PDF_PATH, '_blank');
+    } else {
+      const a = document.createElement('a');
+      a.href = PDF_PATH;
+      a.download = 'Gautam_Baldaniya_Cybersecurity_Resume.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  }
+
+  /* -------------------------------------------------------------------------
+     Reset form fields & error states
+     ------------------------------------------------------------------------- */
+  function resetGateForm() {
+    ['gate-name','gate-company','gate-email','gate-phone'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.value = ''; el.classList.remove('input-error','input-success'); }
+    });
+    ['gate-name-err','gate-company-err','gate-email-err','gate-phone-err'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '';
+    });
+    const hintEl = document.getElementById('gate-email-trust');
+    if (hintEl) { hintEl.textContent = ''; hintEl.style.color = ''; }
+    const flagEl = document.getElementById('gate-suspicious-flag');
+    if (flagEl) flagEl.classList.add('hidden');
+
+    // Reset submit btn
+    const btn  = document.getElementById('gate-submit-btn');
+    const icon = document.getElementById('gate-submit-icon');
+    const txt  = document.getElementById('gate-submit-text');
+    if (btn)  { btn.disabled = false; }
+    if (icon) icon.setAttribute('data-lucide', 'unlock');
+    if (txt)  txt.textContent = 'VERIFY & ACCESS RESUME';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  /* -------------------------------------------------------------------------
+     Wire up all button click interceptions
+     ------------------------------------------------------------------------- */
+  function initGateInterception() {
+    // Hero download button
+    const heroBtn = document.getElementById('hero-resume-btn');
+    if (heroBtn) {
+      heroBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (gateRequired()) {
+          openGateModal('download');
+        } else {
+          executePdfAction('download');
+        }
+      });
+    }
+
+    // Resume page — Open PDF directly
+    const openBtn = document.getElementById('resume-open-btn');
+    if (openBtn) {
+      openBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (gateRequired()) {
+          openGateModal('open');
+        } else {
+          executePdfAction('open');
+        }
+      });
+    }
+
+    // Resume page — Download PDF
+    const dlBtn = document.getElementById('resume-download-btn');
+    if (dlBtn) {
+      dlBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (gateRequired()) {
+          openGateModal('download');
+        } else {
+          executePdfAction('download');
+        }
+      });
+    }
+
+    // Cancel button
+    const cancelBtn = document.getElementById('gate-cancel-btn');
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', closeGateModal);
+    }
+
+    // Click outside to close
+    const modal = document.getElementById('recruiter-gate-modal');
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeGateModal();
+      });
+    }
+
+    // Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const modal = document.getElementById('recruiter-gate-modal');
+        if (modal && !modal.classList.contains('hidden')) closeGateModal();
+      }
+    });
+
+    // Real-time email domain feedback
+    const emailInput = document.getElementById('gate-email');
+    if (emailInput) {
+      emailInput.addEventListener('input', () => {
+        const val = emailInput.value.trim();
+        if (val.includes('@')) checkEmailLegitimacy(val);
+      });
+    }
+
+    // Form submit
+    const form = document.getElementById('recruiter-gate-form');
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!validateGateForm()) return;
+
+        const name    = document.getElementById('gate-name').value.trim();
+        const company = document.getElementById('gate-company').value.trim();
+        const email   = document.getElementById('gate-email').value.trim();
+        const phone   = document.getElementById('gate-phone').value.trim();
+
+        // Update button state
+        const btn  = document.getElementById('gate-submit-btn');
+        const icon = document.getElementById('gate-submit-icon');
+        const txt  = document.getElementById('gate-submit-text');
+        if (btn)  btn.disabled = true;
+        if (icon) icon.setAttribute('data-lucide', 'loader');
+        if (txt)  txt.textContent = 'VERIFYING...';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+
+        try {
+          const { isSuspicious } = await saveRecruiterLead(name, company, email, phone);
+          
+          if (icon) icon.setAttribute('data-lucide', 'check-circle');
+          if (txt)  txt.textContent = 'ACCESS GRANTED';
+          if (typeof lucide !== 'undefined') lucide.createIcons();
+
+          if (window.showNotification) {
+            if (isSuspicious) {
+              window.showNotification(`Lead captured — personal email flagged for review.`, 'info');
+            } else {
+              window.showNotification(`Identity verified. Accessing resume files...`, 'success');
+            }
+          }
+
+          // Short delay so user sees confirmation, then fire PDF
+          setTimeout(() => {
+            closeGateModal();
+            executePdfAction(pendingAction || 'download');
+          }, 900);
+
+        } catch(err) {
+          console.error('Gate save error:', err);
+          if (icon) icon.setAttribute('data-lucide', 'unlock');
+          if (txt)  txt.textContent = 'VERIFY & ACCESS RESUME';
+          if (btn)  btn.disabled = false;
+          if (typeof lucide !== 'undefined') lucide.createIcons();
+          // Even on error — still open the file (don't block recruiter experience)
+          closeGateModal();
+          executePdfAction(pendingAction || 'download');
+        }
+      });
+    }
+  }
+
+  // Init after DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initGateInterception);
+  } else {
+    initGateInterception();
+  }
+
+})();

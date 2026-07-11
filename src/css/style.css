@@ -3935,3 +3935,688 @@ input, textarea, select {
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+   RECRUITER GATE MODAL
+   ========================================================================== */
+
+/* Overlay */
+#recruiter-gate-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(3, 7, 18, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: 1rem;
+}
+
+#recruiter-gate-modal.hidden {
+  display: none;
+}
+
+/* Modal Card */
+.recruiter-gate-wrap {
+  width: 100%;
+  max-width: 680px;
+  background: linear-gradient(135deg, rgba(11, 15, 25, 0.98), rgba(17, 24, 39, 0.98));
+  border: 1px solid rgba(0, 255, 204, 0.35);
+  border-radius: 8px;
+  box-shadow: 0 0 40px rgba(0, 255, 204, 0.12), 0 0 80px rgba(0, 255, 204, 0.04), inset 0 1px 0 rgba(0, 255, 204, 0.1);
+  overflow: hidden;
+  animation: gateSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  position: relative;
+}
+
+@keyframes gateSlideUp {
+  from { opacity: 0; transform: translateY(32px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Corner accent decorations */
+.recruiter-gate-wrap::before,
+.recruiter-gate-wrap::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-color: var(--cyber-green);
+  border-style: solid;
+  opacity: 0.6;
+}
+.recruiter-gate-wrap::before {
+  top: 8px; left: 8px;
+  border-width: 2px 0 0 2px;
+}
+.recruiter-gate-wrap::after {
+  bottom: 8px; right: 8px;
+  border-width: 0 2px 2px 0;
+}
+
+/* Header */
+.gate-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem 1rem 1.5rem;
+}
+
+.gate-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.gate-shield-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  background: rgba(0, 255, 204, 0.07);
+  border: 1px solid rgba(0, 255, 204, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 12px rgba(0, 255, 204, 0.08);
+}
+
+.gate-shield-icon i {
+  width: 22px;
+  height: 22px;
+}
+
+.gate-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+}
+
+.gate-subtitle {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  margin-top: 0.2rem;
+}
+
+.gate-trust-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  color: var(--cyber-green);
+  background: rgba(0, 255, 204, 0.06);
+  border: 1px solid rgba(0, 255, 204, 0.2);
+  padding: 0.3rem 0.65rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+/* Animated scan bar divider */
+.gate-scan-bar {
+  height: 2px;
+  width: 100%;
+  background: rgba(0, 255, 204, 0.06);
+  overflow: hidden;
+  position: relative;
+}
+
+.gate-scan-line {
+  position: absolute;
+  top: 0;
+  left: -60%;
+  height: 100%;
+  width: 60%;
+  background: linear-gradient(90deg, transparent, var(--cyber-green), transparent);
+  animation: gateScan 2.5s linear infinite;
+}
+
+@keyframes gateScan {
+  from { left: -60%; }
+  to   { left: 110%; }
+}
+
+/* Alert Banner */
+.gate-alert-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin: 1rem 1.5rem 0 1.5rem;
+  background: rgba(59, 130, 246, 0.07);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 4px;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  line-height: 1.4;
+}
+
+.gate-alert-banner i {
+  width: 14px;
+  height: 14px;
+  color: var(--cyber-blue);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Form */
+.gate-form {
+  padding: 1.25rem 1.5rem 0 1.5rem;
+}
+
+.gate-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 540px) {
+  .gate-form-row { grid-template-columns: 1fr; }
+}
+
+.gate-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.gate-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+}
+
+.gate-label i {
+  width: 11px;
+  height: 11px;
+  color: var(--cyber-green);
+}
+
+.gate-required {
+  color: var(--cyber-red);
+  font-weight: 900;
+}
+
+.gate-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-family: var(--font-mono);
+  padding: 0.6rem 0.75rem;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.gate-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.gate-input:focus {
+  border-color: rgba(0, 255, 204, 0.5);
+  box-shadow: 0 0 0 3px rgba(0, 255, 204, 0.07);
+  outline: none;
+}
+
+.gate-input.input-error {
+  border-color: rgba(239, 68, 68, 0.6);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.07);
+}
+
+.gate-input.input-success {
+  border-color: rgba(0, 255, 204, 0.45);
+}
+
+.gate-field-error {
+  font-size: 0.62rem;
+  color: var(--cyber-red);
+  font-family: var(--font-mono);
+  min-height: 0.85rem;
+}
+
+.gate-field-hint {
+  font-size: 0.62rem;
+  font-family: var(--font-mono);
+  min-height: 0.85rem;
+}
+
+/* Telemetry fingerprint preview row */
+.gate-telemetry-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.62rem;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.gate-telemetry-row i {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+/* Actions row */
+.gate-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem 1.5rem 1.5rem;
+}
+
+.gate-cancel-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  font-family: var(--font-mono);
+  padding: 0.55rem 1.1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.gate-cancel-btn:hover {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: var(--cyber-red);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.gate-cancel-btn i {
+  width: 13px;
+  height: 13px;
+}
+
+.gate-submit-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, rgba(0, 255, 204, 0.15), rgba(59, 130, 246, 0.15));
+  border: 1px solid rgba(0, 255, 204, 0.45);
+  color: var(--cyber-green);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  font-family: var(--font-mono);
+  padding: 0.65rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 0 12px rgba(0, 255, 204, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.gate-submit-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(0, 255, 204, 0.08), transparent);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.gate-submit-btn:hover {
+  background: linear-gradient(135deg, rgba(0, 255, 204, 0.22), rgba(59, 130, 246, 0.22));
+  border-color: var(--cyber-green);
+  box-shadow: var(--glow-green);
+  color: var(--cyber-green);
+}
+
+.gate-submit-btn:hover::after { opacity: 1; }
+
+.gate-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.gate-submit-btn i {
+  width: 14px;
+  height: 14px;
+}
+
+/* Suspicious flag bar */
+.gate-suspicious-flag {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 1.5rem 1rem 1.5rem;
+  background: rgba(234, 179, 8, 0.07);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  border-radius: 4px;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.7rem;
+  color: var(--cyber-yellow);
+  font-family: var(--font-mono);
+  animation: gateSlideUp 0.3s ease both;
+}
+
+.gate-suspicious-flag.hidden {
+  display: none;
+}
+
+.gate-suspicious-flag i {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   COMPANY AUTOCOMPLETE DROPDOWN (Clearbit)
+   ========================================================================== */
+
+.gate-ac-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 25000;
+  background: rgba(11, 15, 25, 0.98);
+  border: 1px solid rgba(0, 255, 204, 0.3);
+  border-radius: 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 255, 204, 0.06);
+  overflow: hidden;
+  max-height: 280px;
+  overflow-y: auto;
+  animation: gateSlideUp 0.18s ease both;
+}
+
+.gate-ac-dropdown.hidden {
+  display: none;
+}
+
+/* Loading state */
+.gate-ac-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.gate-ac-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(0, 255, 204, 0.2);
+  border-top-color: var(--cyber-green);
+  border-radius: 50%;
+  animation: acSpin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes acSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* Empty state */
+.gate-ac-empty {
+  padding: 0.75rem 1rem;
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* Individual result item */
+.gate-ac-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.gate-ac-item:last-child {
+  border-bottom: none;
+}
+
+.gate-ac-item:hover {
+  background: rgba(0, 255, 204, 0.06);
+}
+
+/* Company logo in dropdown */
+.gate-ac-logo-wrap {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.gate-ac-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.gate-ac-logo-fallback {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--cyber-green);
+  font-family: var(--font-mono);
+}
+
+/* Company name + domain text */
+.gate-ac-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.gate-ac-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gate-ac-domain {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* Verified chip in dropdown */
+.gate-ac-verified-chip {
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: var(--cyber-green);
+  background: rgba(0, 255, 204, 0.08);
+  border: 1px solid rgba(0, 255, 204, 0.2);
+  padding: 0.15rem 0.4rem;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   COMPANY VERIFIED BADGE (shown below company field after selection)
+   ========================================================================== */
+
+.gate-company-verified-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+  padding: 0.35rem 0.6rem;
+  background: rgba(0, 255, 204, 0.05);
+  border: 1px solid rgba(0, 255, 204, 0.2);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  animation: gateSlideUp 0.25s ease both;
+}
+
+.gate-company-verified-badge.hidden {
+  display: none;
+}
+
+.gate-badge-logo {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.gate-badge-name {
+  font-weight: 700;
+  color: var(--text-primary);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gate-badge-domain {
+  color: var(--text-muted);
+  font-size: 0.6rem;
+}
+
+/* Chip states */
+.gate-badge-chip {
+  font-size: 0.58rem;
+  font-weight: 800;
+  padding: 0.12rem 0.45rem;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  letter-spacing: 0.5px;
+}
+
+.gate-badge-chip.verified {
+  color: var(--cyber-green);
+  background: rgba(0, 255, 204, 0.1);
+  border: 1px solid rgba(0, 255, 204, 0.3);
+}
+
+.gate-badge-chip.strong {
+  color: var(--cyber-green);
+  background: rgba(0, 255, 204, 0.18);
+  border: 1px solid rgba(0, 255, 204, 0.5);
+  box-shadow: 0 0 8px rgba(0, 255, 204, 0.15);
+}
+
+.gate-badge-chip.checking {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.gate-badge-chip.mismatch,
+.gate-badge-chip.suspicious {
+  color: var(--cyber-yellow);
+  background: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.gate-badge-chip.unknown {
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ==========================================================================
+   EMAIL DOMAIN VERIFICATION BADGE
+   ========================================================================== */
+
+.gate-email-verify-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.3rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  animation: gateSlideUp 0.2s ease both;
+  border: 1px solid transparent;
+}
+
+.gate-email-verify-badge.hidden { display: none; }
+
+/* State-specific colouring */
+.gate-email-verify-badge.state-strong {
+  background: rgba(0, 255, 204, 0.07);
+  border-color: rgba(0, 255, 204, 0.3);
+  box-shadow: 0 0 10px rgba(0, 255, 204, 0.08);
+}
+
+.gate-email-verify-badge.state-verified {
+  background: rgba(0, 255, 204, 0.04);
+  border-color: rgba(0, 255, 204, 0.18);
+}
+
+.gate-email-verify-badge.state-checking {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+.gate-email-verify-badge.state-mismatch,
+.gate-email-verify-badge.state-suspicious {
+  background: rgba(234, 179, 8, 0.05);
+  border-color: rgba(234, 179, 8, 0.25);
+}
+
+.gate-email-verify-badge.state-unknown {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(255, 255, 255, 0.07);
+}
+
+.gate-badge-domain-text {
+  color: var(--text-muted);
+  font-size: 0.63rem;
+}
+
+/* Make the company field group position:relative for absolute dropdown */
+#gate-company {
+  position: relative;
+}
+
+.gate-form-group {
+  position: relative;
+}
